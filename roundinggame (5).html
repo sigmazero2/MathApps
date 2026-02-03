@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Rounding Game (Guided + Standard)</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 24px; line-height: 1.35; }
+    .card { max-width: 980px; margin: 0 auto; border: 1px solid #ddd; border-radius: 12px; padding: 18px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); }
+    h1 { margin: 0 0 6px 0; font-size: 22px; }
+    .sub { color: #555; margin-bottom: 14px; }
+    .big-number { font-size: 34px; font-weight: 800; letter-spacing: 0.5px; margin: 10px 0 10px 0; }
+    .pill { display: inline-block; padding: 2px 10px; border-radius: 999px; background: #f0f3ff; border: 1px solid #d9e1ff; font-size: 12px; color: #334; margin-left: 8px; }
+
+    .tabs { display: flex; gap: 8px; margin: 10px 0 14px 0; }
+    .tabbtn { padding: 10px 14px; border-radius: 999px; border: 1px solid #ccc; background: #fafafa; cursor: pointer; font-size: 14px; }
+    .tabbtn.active { background: #e9eeff; border-color: #cbd6ff; font-weight: 700; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    .row { display: grid; grid-template-columns: 240px 220px 1fr; gap: 10px; align-items: center; padding: 10px 0; border-top: 1px solid #eee; }
+    .row:first-of-type { border-top: none; }
+    label { font-weight: 600; }
+    input[type="text"] { padding: 10px 12px; font-size: 16px; border: 1px solid #ccc; border-radius: 10px; width: 100%; }
+    .feedback { font-size: 14px; }
+    .ok { color: #0a7a2f; font-weight: 700; }
+    .bad { color: #b00020; font-weight: 700; }
+    .controls { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+    button { padding: 10px 14px; font-size: 15px; border-radius: 10px; border: 1px solid #ccc; background: #fafafa; cursor: pointer; }
+    button:hover { background: #f2f2f2; }
+    button.primary { background: #eef2ff; border-color: #cbd6ff; }
+    button.primary:hover { background: #e6ecff; }
+
+    .mini { color: #666; font-size: 13px; margin-top: 10px; }
+
+    .guidedBox { border-top: 1px solid #eee; padding-top: 14px; margin-top: 10px; }
+    .guidedHeader { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+    .guidedHeader h2 { margin: 0; font-size: 18px; }
+    .step { margin-top: 10px; padding: 12px; border: 1px solid #eee; border-radius: 12px; background: #fcfcfc; }
+    .stepTitle { font-weight: 800; margin-bottom: 8px; }
+    .digits { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+    .digitBtn {
+      width: 52px; height: 52px; border-radius: 14px;
+      border: 1px solid #ccc; background: #fff; cursor: pointer;
+      font-size: 20px; font-weight: 800;
+      display: inline-flex; align-items: center; justify-content: center;
+    }
+    .digitBtn:hover { background: #f6f6f6; }
+    .digitBtn.correctPick { border-color: #0a7a2f; box-shadow: 0 0 0 3px rgba(10,122,47,0.15); }
+    .digitBtn.wrongPick { border-color: #b00020; box-shadow: 0 0 0 3px rgba(176,0,32,0.12); }
+
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 520px; }
+    @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } }
+    .inlineControls { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
+    .muted { color: #666; font-size: 13px; }
+    .doneTag { font-size: 12px; padding: 2px 10px; border-radius: 999px; border: 1px solid #ddd; background: #f7f7f7; }
+    .doneTag.ok { border-color: #bfe6c8; background: #effaf2; color: #0a7a2f; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Rounding Practice Game</h1>
+    <div class="sub">
+      Number uses only digits 1–8 and stays between 1,000,000 and 8,000,000.
+      <span class="pill">Guided + Standard</span>
+    </div>
+
+    <div id="numberDisplay" class="big-number">—</div>
+
+    <!-- Guided first -->
+    <div class="tabs">
+      <button class="tabbtn active" id="tabGuided" type="button">Guided Mode</button>
+      <button class="tabbtn" id="tabStandard" type="button">Standard Mode</button>
+    </div>
+
+    <div id="panelGuided" class="panel active">
+      <div class="guidedHeader">
+        <h2>Guided Mode</h2>
+        <div class="muted" id="guidedTargetText"></div>
+      </div>
+
+      <div class="guidedBox">
+        <div id="guidedContent"></div>
+        <div class="controls">
+          <button id="guidedNextProblemBtn" type="button">Next Problem</button>
+          <button id="guidedResetBtn" type="button">Reset This Problem</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="panelStandard" class="panel">
+      <div id="standardQuestions"></div>
+      <div class="controls">
+        <button id="standardCheckBtn" class="primary" type="button">Check Answers</button>
+        <button id="standardNextBtn" type="button">Next</button>
+        <button id="standardResetBtn" type="button">Reset</button>
+      </div>
+      <div class="mini">
+        Tip: You may type with or without commas (e.g., <code>1,200,000</code> or <code>1200000</code>).
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const PLACE_OPTIONS_DECREASING = [
+      { key: "millions",         label: "Millions",          factor: 1_000_000, digitIndex: 0 },
+      { key: "hundredThousands", label: "Hundred Thousands", factor:   100_000, digitIndex: 1 },
+      { key: "tenThousands",     label: "Ten Thousands",     factor:    10_000, digitIndex: 2 },
+      { key: "thousands",        label: "Thousands",         factor:     1_000, digitIndex: 3 },
+      { key: "hundreds",         label: "Hundreds",          factor:       100, digitIndex: 4 },
+      { key: "tens",             label: "Tens",              factor:        10, digitIndex: 5 }
+    ];
+
+    let currentNumber = null;
+
+    // Standard: 4 places decreasing
+    let standardPlaces = [];
+
+    // Guided: single place
+    let guidedPlace = null;
+    let guidedState = null;
+
+    function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+    function formatNumber(n) { return n.toLocaleString("en-US"); }
+
+    function parseStudentInt(raw) {
+      const cleaned = String(raw).trim().replace(/,/g, "").replace(/\s+/g, "");
+      if (!cleaned) return null;
+      if (!/^-?\d+$/.test(cleaned)) return null;
+      return parseInt(cleaned, 10);
+    }
+
+    function roundToPlace(n, factor) { return Math.round(n / factor) * factor; }
+    function lowerBound(n, factor) { return Math.floor(n / factor) * factor; }
+    function upperBound(n, factor) { return Math.ceil(n / factor) * factor; }
+
+    function generateNumberDigits1to8InRange() {
+      const first = randInt(1, 7);
+      let s = String(first);
+      for (let i = 0; i < 6; i++) s += String(randInt(1, 8));
+      return parseInt(s, 10);
+    }
+
+    function pick4UniquePlacesDecreasing() {
+      const shuffled = [...PLACE_OPTIONS_DECREASING].sort(() => Math.random() - 0.5);
+      const picked = shuffled.slice(0, 4);
+      picked.sort((a, b) => b.factor - a.factor);
+      return picked;
+    }
+
+    function pick1Place() {
+      return PLACE_OPTIONS_DECREASING[randInt(0, PLACE_OPTIONS_DECREASING.length - 1)];
+    }
+
+    function digitsOfCurrentNumber() {
+      return String(currentNumber).split("").map(d => parseInt(d, 10));
+    }
+
+    // ---- Tabs ----
+    function setActiveTab(which) {
+      const gBtn = document.getElementById("tabGuided");
+      const sBtn = document.getElementById("tabStandard");
+      const gPanel = document.getElementById("panelGuided");
+      const sPanel = document.getElementById("panelStandard");
+
+      if (which === "guided") {
+        gBtn.classList.add("active"); sBtn.classList.remove("active");
+        gPanel.classList.add("active"); sPanel.classList.remove("active");
+        renderGuided();
+      } else {
+        sBtn.classList.add("active"); gBtn.classList.remove("active");
+        sPanel.classList.add("active"); gPanel.classList.remove("active");
+        renderStandard();
+      }
+    }
+
+    // ---- Standard ----
+    function renderStandard() {
+      document.getElementById("numberDisplay").textContent = formatNumber(currentNumber);
+
+      const wrap = document.getElementById("standardQuestions");
+      wrap.innerHTML = "";
+
+      standardPlaces.forEach((p) => {
+        const row = document.createElement("div");
+        row.className = "row";
+
+        const label = document.createElement("label");
+        label.setAttribute("for", `std_in_${p.key}`);
+        label.textContent = `Nearest ${p.label}:`;
+
+        const input = document.createElement("input");
+        input.type = "text";
+        input.id = `std_in_${p.key}`;
+        input.autocomplete = "off";
+        input.inputMode = "numeric";
+        input.placeholder = "Enter your rounded value";
+
+        const fb = document.createElement("div");
+        fb.className = "feedback";
+        fb.id = `std_fb_${p.key}`;
+        fb.textContent = "";
+
+        row.appendChild(label);
+        row.appendChild(input);
+        row.appendChild(fb);
+        wrap.appendChild(row);
+      });
+    }
+
+    function clearStandard() {
+      standardPlaces.forEach((p) => {
+        const input = document.getElementById(`std_in_${p.key}`);
+        const fb = document.getElementById(`std_fb_${p.key}`);
+        if (input) input.value = "";
+        if (fb) { fb.textContent = ""; fb.className = "feedback"; }
+      });
+    }
+
+    function checkStandard() {
+      standardPlaces.forEach((p) => {
+        const inputEl = document.getElementById(`std_in_${p.key}`);
+        const fb = document.getElementById(`std_fb_${p.key}`);
+
+        const studentVal = parseStudentInt(inputEl.value);
+        const correctVal = roundToPlace(currentNumber, p.factor);
+
+        if (studentVal === null) {
+          fb.className = "feedback bad";
+          fb.textContent = `Incorrect — enter a whole number. Correct: ${formatNumber(correctVal)}`;
+          return;
+        }
+
+        if (studentVal === correctVal) {
+          fb.className = "feedback ok";
+          fb.textContent = "Correct ✓";
+        } else {
+          fb.className = "feedback bad";
+          fb.textContent = `Incorrect ✗  Correct: ${formatNumber(correctVal)}`;
+        }
+      });
+    }
+
+    // ---- Guided ----
+    function initGuidedState() {
+      guidedState = {
+        digitPickedCorrectly: false,
+        boundsCorrect: false,
+        roundCorrect: false,
+        wrongDigitTries: 0,
+        lbValue: "",
+        ubValue: "",
+        roundValue: ""
+      };
+    }
+
+    function renderGuided() {
+      document.getElementById("numberDisplay").textContent = formatNumber(currentNumber);
+
+      const p = guidedPlace;
+      const st = guidedState;
+      const digits = digitsOfCurrentNumber();
+
+      document.getElementById("guidedTargetText").textContent = `Target: Nearest ${p.label}`;
+
+      const correctDigitIndex = p.digitIndex;
+      const correctDigitValue = digits[correctDigitIndex];
+
+      const lb = lowerBound(currentNumber, p.factor);
+      const ub = upperBound(currentNumber, p.factor);
+      const rounded = roundToPlace(currentNumber, p.factor);
+
+      const wrap = document.getElementById("guidedContent");
+      wrap.innerHTML = "";
+
+      // Step 1
+      const step1 = document.createElement("div");
+      step1.className = "step";
+      step1.innerHTML = `
+        <div class="stepTitle">Step 1: Click the digit in the <b>${p.label}</b> place</div>
+        <div class="digits" id="digitButtons"></div>
+        <div class="feedback" id="g_fb_digit"></div>
+      `;
+      wrap.appendChild(step1);
+
+      const digitButtons = step1.querySelector("#digitButtons");
+      digits.forEach((d, idx) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "digitBtn";
+        btn.textContent = d;
+        btn.disabled = st.digitPickedCorrectly;
+
+        btn.addEventListener("click", () => {
+          if (st.digitPickedCorrectly) return;
+
+          const fb = document.getElementById("g_fb_digit");
+          [...digitButtons.querySelectorAll(".digitBtn")].forEach(b => b.classList.remove("wrongPick", "correctPick"));
+
+          if (idx === correctDigitIndex) {
+            st.digitPickedCorrectly = true;
+            btn.classList.add("correctPick");
+            fb.className = "feedback ok";
+            fb.textContent = `Correct ✓`;
+            renderGuided(); // reveal step 2
+          } else {
+            st.wrongDigitTries += 1;
+            btn.classList.add("wrongPick");
+            fb.className = "feedback bad";
+            fb.textContent = `Not quite — try again. (Attempts: ${st.wrongDigitTries})`;
+          }
+        });
+
+        digitButtons.appendChild(btn);
+      });
+
+      if (st.digitPickedCorrectly) {
+        const fb = step1.querySelector("#g_fb_digit");
+        fb.className = "feedback ok";
+        fb.textContent = `Correct ✓  You selected the ${p.label} digit (${correctDigitValue}).`;
+      }
+
+      // Step 2 (only after step1)
+      if (st.digitPickedCorrectly) {
+        const step2 = document.createElement("div");
+        step2.className = "step";
+        step2.innerHTML = `
+          <div class="stepTitle">Step 2: What two nearest ${p.label.toLowerCase()} values is ${formatNumber(currentNumber)} between?</div>
+          <div class="grid2" style="margin-top:10px;">
+            <div>
+              <label for="g_lb">Lower bound</label>
+              <input
+                type="text"
+                id="g_lb"
+                inputmode="numeric"
+                placeholder="Enter lower bound"
+                value="${st.lbValue}"
+                ${st.boundsCorrect ? "disabled" : ""}>
+            </div>
+            <div>
+              <label for="g_ub">Upper bound</label>
+              <input
+                type="text"
+                id="g_ub"
+                inputmode="numeric"
+                placeholder="Enter upper bound"
+                value="${st.ubValue}"
+                ${st.boundsCorrect ? "disabled" : ""}>
+            </div>
+          </div>
+          <div class="inlineControls">
+            <button type="button" id="g_check_bounds" class="primary" ${st.boundsCorrect ? "disabled" : ""}>Check Bounds</button>
+            <span id="g_fb_bounds" class="feedback"></span>
+          </div>
+        `;
+        wrap.appendChild(step2);
+
+        if (st.boundsCorrect) {
+          const fb = step2.querySelector("#g_fb_bounds");
+          fb.className = "feedback ok";
+          fb.textContent = "Correct ✓";
+        }
+
+        step2.querySelector("#g_check_bounds").addEventListener("click", () => {
+          const lbRaw = document.getElementById("g_lb").value;
+          const ubRaw = document.getElementById("g_ub").value;
+
+          // persist typed values so they remain visible across re-render
+          st.lbValue = lbRaw;
+          st.ubValue = ubRaw;
+
+          const lbIn = parseStudentInt(lbRaw);
+          const ubIn = parseStudentInt(ubRaw);
+          const fb = document.getElementById("g_fb_bounds");
+
+          if (lbIn === lb && ubIn === ub) {
+            st.boundsCorrect = true;
+
+            // force correct formatted values into boxes and lock them
+            st.lbValue = formatNumber(lb);
+            st.ubValue = formatNumber(ub);
+
+            fb.className = "feedback ok";
+            fb.textContent = "Correct ✓";
+            renderGuided(); // reveal step 3
+          } else {
+            fb.className = "feedback bad";
+            fb.textContent = "Incorrect ✗  Try again.";
+          }
+        });
+      }
+
+      // Step 3 (only after step2 correct)
+      if (st.digitPickedCorrectly && st.boundsCorrect) {
+        const step3 = document.createElement("div");
+        step3.className = "step";
+        step3.innerHTML = `
+          <div class="stepTitle">Step 3: Round ${formatNumber(currentNumber)} to the nearest ${p.label.toLowerCase()}</div>
+          <div>
+            <label for="g_round">Rounded value</label>
+            <input
+              type="text"
+              id="g_round"
+              inputmode="numeric"
+              placeholder="Enter rounded value"
+              value="${st.roundValue}"
+              ${st.roundCorrect ? "disabled" : ""}>
+          </div>
+          <div class="inlineControls">
+            <button type="button" id="g_check_round" class="primary" ${st.roundCorrect ? "disabled" : ""}>Check Rounding</button>
+            <span id="g_fb_round" class="feedback"></span>
+          </div>
+        `;
+        wrap.appendChild(step3);
+
+        if (st.roundCorrect) {
+          const fb = step3.querySelector("#g_fb_round");
+          fb.className = "feedback ok";
+          fb.textContent = "Correct ✓";
+        }
+
+        step3.querySelector("#g_check_round").addEventListener("click", () => {
+          const raw = document.getElementById("g_round").value;
+          st.roundValue = raw; // persist what they typed
+
+          const ans = parseStudentInt(raw);
+          const fb = document.getElementById("g_fb_round");
+
+          if (ans === null) {
+            fb.className = "feedback bad";
+            fb.textContent = "Enter a whole number.";
+            return;
+          }
+
+          if (ans === rounded) {
+            st.roundCorrect = true;
+
+            // force correct formatted answer into box and lock it
+            st.roundValue = formatNumber(rounded);
+
+            fb.className = "feedback ok";
+            fb.textContent = "Correct ✓";
+
+            // Auto-advance to a new problem after a short moment
+            setTimeout(() => {
+              newGuidedProblem();
+            }, 450);
+
+            renderGuided();
+          } else {
+            fb.className = "feedback bad";
+            fb.textContent = "Incorrect ✗  Try again.";
+          }
+        });
+      }
+
+      const done = (st.digitPickedCorrectly && st.boundsCorrect && st.roundCorrect);
+      const tag = document.createElement("div");
+      tag.style.marginTop = "10px";
+      tag.innerHTML = done
+        ? `<span class="doneTag ok">Complete ✓ (loading next problem…)</span>`
+        : `<span class="doneTag">Complete steps to finish</span>`;
+      wrap.appendChild(tag);
+    }
+
+    function newGuidedProblem() {
+      currentNumber = generateNumberDigits1to8InRange();
+      guidedPlace = pick1Place();
+      initGuidedState();
+      renderGuided();
+
+      // keep standard in sync with the new number too
+      standardPlaces = pick4UniquePlacesDecreasing();
+      if (document.getElementById("panelStandard").classList.contains("active")) {
+        renderStandard();
+      }
+    }
+
+    function resetGuidedThisProblem() {
+      initGuidedState();
+      renderGuided();
+    }
+
+    function newStandardProblem() {
+      currentNumber = generateNumberDigits1to8InRange();
+      standardPlaces = pick4UniquePlacesDecreasing();
+      renderStandard();
+
+      // keep guided in sync
+      guidedPlace = pick1Place();
+      initGuidedState();
+      if (document.getElementById("panelGuided").classList.contains("active")) {
+        renderGuided();
+      }
+    }
+
+    // ---- Wire up events ----
+    document.getElementById("tabGuided").addEventListener("click", () => setActiveTab("guided"));
+    document.getElementById("tabStandard").addEventListener("click", () => setActiveTab("standard"));
+
+    document.getElementById("standardCheckBtn").addEventListener("click", checkStandard);
+    document.getElementById("standardResetBtn").addEventListener("click", clearStandard);
+    document.getElementById("standardNextBtn").addEventListener("click", newStandardProblem);
+
+    document.getElementById("guidedNextProblemBtn").addEventListener("click", newGuidedProblem);
+    document.getElementById("guidedResetBtn").addEventListener("click", resetGuidedThisProblem);
+
+    // Enter key checks standard if standard tab is active
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter") return;
+      const stdPanelActive = document.getElementById("panelStandard").classList.contains("active");
+      if (stdPanelActive) checkStandard();
+    });
+
+    // Start in Guided mode
+    newGuidedProblem();
+  </script>
+</body>
+</html>
