@@ -1,0 +1,1101 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Calc Practice Games</title>
+  <style>
+    :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+
+    /* Reserve space at bottom so Tabby never overlaps content */
+    body {
+      margin: 0;
+      background: #0b1220;
+      color: #e7eefc;
+      padding-bottom: 240px;
+    }
+
+    .wrap { max-width: 980px; margin: 0 auto; padding: 18px 18px 28px; }
+
+    /* Tabs */
+    .tabs {
+      display: flex; gap: 10px; align-items: center;
+      margin: 6px 0 14px;
+      flex-wrap: wrap;
+    }
+    .tabbtn{
+      padding: 10px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.07);
+      color: #e7eefc;
+      cursor: pointer;
+      font-weight: 650;
+    }
+    .tabbtn.active{
+      background: #2a66ff;
+      border-color: rgba(255,255,255,0.20);
+    }
+
+    .card {
+      background: #111b32;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    }
+    h1 { margin: 0 0 12px; font-size: 22px; }
+    h2 { margin: 0 0 10px; font-size: 18px; }
+
+    .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+    .pill {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.08);
+      padding: 8px 10px;
+      border-radius: 999px;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+    .integral, .prompt {
+      margin: 16px 0 12px;
+      font-size: 26px;
+      line-height: 1.25;
+      letter-spacing: 0.2px;
+    }
+    .controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    input[type="text"]{
+      flex: 1 1 320px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(0,0,0,0.25);
+      color: #e7eefc;
+      font-size: 16px;
+      outline: none;
+    }
+    input[type="text"]:disabled { opacity: 0.6; }
+
+    button{
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: #2a66ff;
+      color: white;
+      font-weight: 650;
+      cursor: pointer;
+    }
+    button.secondary { background: rgba(255,255,255,0.10); }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .msg{
+      margin-top: 12px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.05);
+      min-height: 24px;
+      white-space: pre-wrap;
+    }
+    .msg.good{ border-color: rgba(46, 255, 162, 0.45); background: rgba(46, 255, 162, 0.10); }
+    .msg.bad{ border-color: rgba(255, 77, 109, 0.55); background: rgba(255, 77, 109, 0.10); }
+
+    .footer { margin-top: 14px; font-size: 12px; opacity: 0.9; }
+    .kbd { padding: 2px 6px; border-radius: 7px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.06); font-family: ui-monospace, monospace; }
+
+    /* Tabby */
+    #tabby {
+      position: fixed;
+      left: 12px;
+      bottom: 12px;
+      width: 180px;
+      max-width: 35vw;
+      height: auto;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.12);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.35);
+      background: rgba(255,255,255,0.04);
+      user-select: none;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    /* Table */
+    table{
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      overflow: hidden;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.03);
+    }
+    th, td{
+      padding: 10px 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      font-size: 14px;
+    }
+    th{
+      text-align: left;
+      background: rgba(255,255,255,0.06);
+      font-weight: 700;
+    }
+    tr:last-child td{ border-bottom: none; }
+    th:first-child, td:first-child{ padding-left: 20px; }
+    .tcol { width: 30%; }
+
+    .valInput{
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(0,0,0,0.22);
+      color: #e7eefc;
+      font-size: 14px;
+      outline: none;
+    }
+    .divider{
+      height: 1px;
+      background: rgba(255,255,255,0.10);
+      margin: 18px 0;
+    }
+    .hidden { display: none; }
+
+    /* Method choices */
+    .choices{
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    @media (min-width: 720px){
+      .choices{ grid-template-columns: 1fr 1fr 1fr; }
+    }
+    .choiceBtn{
+      background: rgba(255,255,255,0.10);
+      border: 1px solid rgba(255,255,255,0.12);
+      text-align: left;
+    }
+    .choiceBtn:hover{ filter: brightness(1.05); }
+    .choiceBtn strong{ display:inline-block; width: 22px; }
+  </style>
+</head>
+<body>
+
+  <img id="tabby" src="Tabby2.png" alt="Tabby" />
+
+  <div class="wrap">
+    <div class="tabs">
+      <button id="tabIntegrals" class="tabbtn active">Integrals</button>
+      <button id="tabTrig" class="tabbtn">Trigonometric Values</button>
+      <button id="tabMethods" class="tabbtn">Integration Methods</button>
+    </div>
+
+    <!-- ================== INTEGRALS TAB ================== -->
+    <section id="integralsSection" class="card">
+      <h1>Basic Integrals Practice</h1>
+      <div class="row">
+        <div class="pill">Score: <span id="i_score">0</span></div>
+        <div class="pill">Correct: <span id="i_correct">0</span></div>
+        <div class="pill">Incorrect: <span id="i_incorrect">0</span></div>
+        <div class="pill">Streak: <span id="i_streak">0</span></div>
+      </div>
+
+      <div class="integral" id="i_problem"></div>
+
+      <div class="controls">
+        <input id="i_answer" type="text" autocomplete="off" spellcheck="false"
+               placeholder='Type your answer (examples: x^3/3 + C, -cos(3x)/3 + C, arctan(x) + C)' />
+        <button id="i_submit">Submit</button>
+        <button id="i_skip" class="secondary">Skip</button>
+        <button id="i_reset" class="secondary">Reset</button>
+      </div>
+
+      <div class="msg" id="i_msg"></div>
+
+      <div class="footer">
+        Tips: Use <span class="kbd">^</span> for powers (e.g. <span class="kbd">x^(3/2)</span>).
+        For ln, you can type <span class="kbd">ln|x|</span> or <span class="kbd">ln(abs(x))</span>.
+        Constant <span class="kbd">+ C</span> is optional. Spaces don’t matter.
+      </div>
+    </section>
+
+    <!-- ================== TRIG TAB ================== -->
+    <section id="trigSection" class="card hidden">
+      <h1>Trigonometric Values</h1>
+
+      <h2>Fill in the table</h2>
+      <table>
+        <thead>
+          <tr>
+            <th class="tcol">t</th>
+            <th>sin(t)</th>
+            <th>cos(t)</th>
+          </tr>
+        </thead>
+        <tbody id="basicTableBody"></tbody>
+      </table>
+
+      <div class="controls" style="margin-top:12px;">
+        <button id="t_checkTable">Check Table</button>
+        <button id="t_clearTable" class="secondary">Clear</button>
+      </div>
+      <div class="msg" id="t_tableMsg"></div>
+
+      <div class="divider"></div>
+
+      <h2>Quick Quiz</h2>
+      <div class="row">
+        <div class="pill">Score: <span id="t_score">0</span></div>
+        <div class="pill">Correct: <span id="t_correct">0</span></div>
+        <div class="pill">Incorrect: <span id="t_incorrect">0</span></div>
+        <div class="pill">Streak: <span id="t_streak">0</span></div>
+      </div>
+
+      <div class="prompt" id="t_prompt"></div>
+
+      <div class="controls">
+        <input id="t_answer" type="text" autocomplete="off" spellcheck="false"
+               placeholder='Type your answer (examples: -1/2, sqrt(3)/2, -sqrt(2)/2, 0, 1)' />
+        <button id="t_submit">Submit</button>
+        <button id="t_skip" class="secondary">Skip</button>
+        <button id="t_reset" class="secondary">Reset</button>
+      </div>
+
+      <div class="msg" id="t_msg"></div>
+
+      <div class="footer">
+        Accepted formats include <span class="kbd">sqrt(3)/2</span>, <span class="kbd">√3/2</span>, <span class="kbd">sqrt3/2</span>, and signs like <span class="kbd">-1/2</span>.
+        Spaces don’t matter. (No score for the table—score is only for the quiz.)
+      </div>
+    </section>
+
+    <!-- ================== METHODS TAB ================== -->
+    <section id="methodsSection" class="card hidden">
+      <h1>Integration Methods</h1>
+
+      <div class="row">
+        <div class="pill">Score: <span id="m_score">0</span></div>
+        <div class="pill">Correct: <span id="m_correct">0</span></div>
+        <div class="pill">Incorrect: <span id="m_incorrect">0</span></div>
+        <div class="pill">Streak: <span id="m_streak">0</span></div>
+      </div>
+
+      <div class="prompt" id="m_problem"></div>
+
+      <div class="choices" aria-label="Integration method choices">
+        <button id="m_choiceA" class="choiceBtn"><strong>A)</strong> U-Substitution</button>
+        <button id="m_choiceB" class="choiceBtn"><strong>B)</strong> Integration by Parts</button>
+        <button id="m_choiceC" class="choiceBtn"><strong>C)</strong> Change of Variables Substitution (CVS)</button>
+      </div>
+
+      <div class="controls" style="margin-top:12px;">
+        <button id="m_skip" class="secondary">Skip</button>
+        <button id="m_reset" class="secondary">Reset</button>
+      </div>
+
+      <div class="msg" id="m_msg"></div>
+
+      <div class="footer">
+        Keyboard shortcuts: <span class="kbd">A</span>, <span class="kbd">B</span>, <span class="kbd">C</span>.
+      </div>
+    </section>
+  </div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const randInt = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
+  const gcd = (a,b) => { a=Math.abs(a); b=Math.abs(b); while(b){ [a,b]=[b,a%b]; } return a; };
+  const pause = (ms) => new Promise(res => setTimeout(res, ms));
+
+  // Tabby
+  const TABBY = { 1:"Tabby1.png", 2:"Tabby2.png", 3:"Tabby3.png", 4:"Tabby4.png", 5:"Tabby5.jpg", 6:"Tabby6.jpg" };
+  function setTabbySrc(src){
+    const img = $("tabby");
+    if (img.getAttribute("src") !== src) img.setAttribute("src", src);
+  }
+  function tabbyFromStreak(streak){
+    if (streak >= 8) return TABBY[6];
+    if (streak >= 6) return TABBY[5];
+    if (streak >= 4) return TABBY[4];
+    if (streak >= 2) return TABBY[3];
+    if (streak >= 1) return TABBY[2];
+    return TABBY[2];
+  }
+
+  // =========================================================
+  // INTEGRALS GAME (with no exact repeat in a row)
+  // =========================================================
+  function termNx(n){ return `${n}x`; }
+  function powX(expStr){ return expStr.includes("/") ? `x^(${expStr})` : `x^${expStr}`; }
+  function stripPlusC(s){ return s.replace(/\+c$/i, "").replace(/c$/i, ""); }
+
+  function normalizeIntegral(s){
+    if (!s) return "";
+    let t = s.toLowerCase();
+    t = t.replace(/\s+/g, "");
+    t = t.replace(/−/g, "-");
+    t = t.replace(/[{}]/g, "");
+    t = t.replace(/\batan\b/g, "arctan");
+    t = t.replace(/√/g, "sqrt");
+    t = t.replace(/\|\s*x\s*\|/g, "absx");
+    t = t.replace(/abs\(x\)/g, "absx");
+    t = t.replace(/ln\(\s*absx\s*\)/g, "lnabsx");
+    t = t.replace(/ln\(\s*abs\(x\)\s*\)/g, "lnabsx");
+    t = t.replace(/ln\(\s*\|\s*x\s*\|\s*\)/g, "lnabsx");
+    t = t.replace(/ln\|x\|/g, "lnabsx");
+    t = t.replace(/lnabs\(x\)/g, "lnabsx");
+    t = stripPlusC(t);
+
+    t = t.replace(/(\d)([a-z(])/g, "$1*$2");
+    t = t.replace(/(\))([a-z\d(])/g, "$1*$2");
+    t = t.replace(/(absx)([a-z(])/g, "$1*$2");
+    t = t.replace(/(lnabsx)([a-z(])/g, "$1*$2");
+    t = t.replace(/(\d\/\d)([a-z(])/g, "$1*$2");
+    t = t.replace(/x\^\(([-]?\d+)\)/g, "x^$1");
+
+    while (t.includes("+-")) t = t.replace(/\+\-/g, "-");
+    while (t.includes("--")) t = t.replace(/\-\-/g, "+");
+    t = t.replace(/\*1(?=[+\-*/)]|$)/g, "");
+    return t;
+  }
+
+  function expandExpectedIntegral(baseList){
+    const out = new Set();
+    const add = (s) => { if(s){ out.add(s); out.add(s.replace(/\s+/g,"")); } };
+    const addWithC = (s) => {
+      add(s);
+      add(s.replace(/\+?\s*C\s*$/i,""));
+      if (!/c\s*$/i.test(s)) add(s + " + C");
+    };
+    const mulVariants = (coef, term) => {
+      addWithC(`${coef}*${term}`); addWithC(`${coef}${term}`);
+      addWithC(`(${coef})*${term}`); addWithC(`(${coef})${term}`);
+      addWithC(`${term}*${coef}`); addWithC(`${term}${coef}`);
+      addWithC(`${term}*(${coef})`); addWithC(`${term}(${coef})`);
+    };
+    const divVariants = (term, denom) => {
+      addWithC(`${term}/${denom}`);
+      addWithC(`(${term})/${denom}`);
+    };
+
+    for (const raw of baseList){
+      addWithC(raw);
+
+      let m = raw.match(/^\s*(.+?)\s*\/\s*([-]?\d+)\s*(\+\s*C\s*)?$/i);
+      if (m){ divVariants(m[1], m[2]); mulVariants(`1/${m[2]}`, m[1]); continue; }
+
+      m = raw.match(/^\s*\(?\s*([-]?\d+)\s*\/\s*([-]?\d+)\s*\)?\s*\*\s*(.+?)(\+\s*C\s*)?$/i);
+      if (m){ mulVariants(`${m[1]}/${m[2]}`, m[3]); addWithC(`${m[3]}*${m[1]}/${m[2]}`); continue; }
+
+      m = raw.match(/^\s*-\s*\(?\s*1\s*\/\s*([-]?\d+)\s*\)?\s*\*\s*(.+?)(\+\s*C\s*)?$/i);
+      if (m){ mulVariants(`-1/${m[1]}`, m[2]); divVariants(`-${m[2]}`, m[1]); continue; }
+
+      m = raw.match(/^\s*(.+?)\s*\*\s*\(?\s*([-]?\d+)\s*\/\s*([-]?\d+)\s*\)?\s*(\+\s*C\s*)?$/i);
+      if (m){ mulVariants(`${m[2]}/${m[3]}`, m[1]); continue; }
+    }
+    return Array.from(out).map(normalizeIntegral);
+  }
+
+  function isCorrectIntegral(userRaw, expectedExpandedNormalized){
+    const u = normalizeIntegral(userRaw);
+    if (!u) return false;
+    return expectedExpandedNormalized.includes(u);
+  }
+
+  function makeIntegralProblem(){
+    const types = [
+      "powerInt","fracPowerInt","sinNx","cosNx","sec2Nx","sectanNx","nOverX","ePowNx",
+      "oneOver1PlusX2","oneOverSqrt1MinusX2"
+    ];
+    const type = types[randInt(0, types.length - 1)];
+
+    switch(type){
+      case "powerInt": {
+        const n = randInt(2, 8), n1 = n + 1;
+        const display = `∫ ${powX(String(n))} dx`;
+        const base = [
+          `${powX(String(n1))}/${n1} + C`,
+          `(1/${n1})*${powX(String(n1))} + C`,
+          `x^${n1}/${n1} + C`,
+          `(1/${n1})*x^${n1} + C`
+        ];
+        return {
+          signature: `powerInt|x^${n}`,
+          displayHtml: display,
+          canonical: `${powX(String(n1))}/${n1} + C`,
+          expected: expandExpectedIntegral(base)
+        };
+      }
+
+      case "fracPowerInt": {
+        let n, m;
+        do { n = randInt(2, 9); m = randInt(2, 9); } while (gcd(n,m) !== 1);
+        const newNum = n + m;
+        const expStr = `${n}/${m}`;
+        const newExpStr = `${newNum}/${m}`;
+        const display = `∫ ${powX(expStr)} dx`;
+        const base = [
+          `${powX(newExpStr)}/(${newNum}/${m}) + C`,
+          `(${m}/${newNum})*${powX(newExpStr)} + C`
+        ];
+        return {
+          signature: `fracPowerInt|x^(${expStr})`,
+          displayHtml: display,
+          canonical: `(${m}/${newNum})*${powX(newExpStr)} + C`,
+          expected: expandExpectedIntegral(base)
+        };
+      }
+
+      case "sinNx": {
+        const n = randInt(2, 9);
+        const display = `∫ sin(${termNx(n)}) dx`;
+        const base = [
+          `-cos(${termNx(n)})/${n} + C`,
+          `-(1/${n})*cos(${termNx(n)}) + C`
+        ];
+        return {
+          signature: `sinNx|sin(${n}x)`,
+          displayHtml: display,
+          canonical: `-cos(${termNx(n)})/${n} + C`,
+          expected: expandExpectedIntegral(base)
+        };
+      }
+
+      case "cosNx": {
+        const n = randInt(2, 9);
+        const display = `∫ cos(${termNx(n)}) dx`;
+        const base = [
+          `sin(${termNx(n)})/${n} + C`,
+          `(1/${n})*sin(${termNx(n)}) + C`
+        ];
+        return {
+          signature: `cosNx|cos(${n}x)`,
+          displayHtml: display,
+          canonical: `sin(${termNx(n)})/${n} + C`,
+          expected: expandExpectedIntegral(base)
+        };
+      }
+
+      case "sec2Nx": {
+        const n = randInt(2, 9);
+        const display = `∫ sec^2(${termNx(n)}) dx`;
+        const base = [
+          `tan(${termNx(n)})/${n} + C`,
+          `(1/${n})*tan(${termNx(n)}) + C`
+        ];
+        return {
+          signature: `sec2Nx|sec^2(${n}x)`,
+          displayHtml: display,
+          canonical: `tan(${termNx(n)})/${n} + C`,
+          expected: expandExpectedIntegral(base)
+        };
+      }
+
+      case "sectanNx": {
+        const n = randInt(2, 9);
+        const display = `∫ sec(${termNx(n)})tan(${termNx(n)}) dx`;
+        const base = [
+          `sec(${termNx(n)})/${n} + C`,
+          `(1/${n})*sec(${termNx(n)}) + C`
+        ];
+        return {
+          signature: `sectanNx|sec(${n}x)tan(${n}x)`,
+          displayHtml: display,
+          canonical: `sec(${termNx(n)})/${n} + C`,
+          expected: expandExpectedIntegral(base)
+        };
+      }
+
+      case "nOverX": {
+        const n = randInt(2, 9);
+        const display = `∫ (${n}/x) dx`;
+        const base = [
+          `${n}ln|x| + C`,
+          `${n}*ln(abs(x)) + C`
+        ];
+        return {
+          signature: `nOverX|${n}/x`,
+          displayHtml: display,
+          canonical: `${n}ln|x| + C`,
+          expected: expandExpectedIntegral(base)
+        };
+      }
+
+      case "ePowNx": {
+        const n = randInt(2, 9);
+        const display = `∫ e^(${termNx(n)}) dx`;
+        const base = [
+          `e^(${termNx(n)})/${n} + C`,
+          `(1/${n})*e^(${termNx(n)}) + C`
+        ];
+        return {
+          signature: `ePowNx|e^(${n}x)`,
+          displayHtml: display,
+          canonical: `e^(${termNx(n)})/${n} + C`,
+          expected: expandExpectedIntegral(base)
+        };
+      }
+
+      case "oneOver1PlusX2": {
+        const display = `∫ 1/(1 + x^2) dx`;
+        const base = [ `arctan(x) + C`, `arctan(x)` ];
+        return {
+          signature: `arctan|1/(1+x^2)`,
+          displayHtml: display,
+          canonical: `arctan(x) + C`,
+          expected: expandExpectedIntegral(base)
+        };
+      }
+
+      default: {
+        const display = `∫ 1/√(1 - x^2) dx`;
+        const base = [ `arcsin(x) + C`, `arcsin(x)` ];
+        return {
+          signature: `arcsin|1/sqrt(1-x^2)`,
+          displayHtml: display,
+          canonical: `arcsin(x) + C`,
+          expected: expandExpectedIntegral(base)
+        };
+      }
+    }
+  }
+
+  let lastIntegralSignature = null;
+  function makeIntegralProblemNoRepeat(){
+    let p = makeIntegralProblem();
+    for (let tries = 0; tries < 25 && lastIntegralSignature && p.signature === lastIntegralSignature; tries++){
+      p = makeIntegralProblem();
+    }
+    lastIntegralSignature = p.signature;
+    return p;
+  }
+
+  let iState = { score:0, correct:0, incorrect:0, streak:0, locked:false, current:null, hasHadStreak:false };
+
+  function iRender(){
+    $("i_score").textContent = iState.score;
+    $("i_correct").textContent = iState.correct;
+    $("i_incorrect").textContent = iState.incorrect;
+    $("i_streak").textContent = iState.streak;
+  }
+  function iSetMsg(text, kind){
+    const el = $("i_msg");
+    el.classList.remove("good","bad");
+    if (kind==="good") el.classList.add("good");
+    if (kind==="bad") el.classList.add("bad");
+    el.textContent = text || "";
+  }
+  function iSetLocked(lock){
+    iState.locked = lock;
+    $("i_answer").disabled = lock;
+    $("i_submit").disabled = lock;
+    $("i_skip").disabled = lock;
+  }
+  function iUpdateTabby(){
+    if (iState.streak === 0 && iState.hasHadStreak) return setTabbySrc(TABBY[1]);
+    setTabbySrc(tabbyFromStreak(iState.streak));
+  }
+  function iNext(){
+    iState.current = makeIntegralProblemNoRepeat();
+    $("i_problem").innerHTML = iState.current.displayHtml;
+    $("i_answer").value = "";
+    $("i_answer").focus();
+    iSetMsg("", null);
+  }
+  async function iCheck(){
+    if (iState.locked) return;
+    const user = $("i_answer").value;
+    iSetLocked(true);
+
+    const ok = isCorrectIntegral(user, iState.current.expected);
+    if (ok){
+      iState.correct++; iState.streak++; iState.hasHadStreak = true;
+      iState.score += 10 + Math.min(10, iState.streak);
+      iUpdateTabby();
+      iSetMsg("✅ Correct!", "good");
+      iRender();
+      await pause(1000);
+      iSetLocked(false);
+      iNext();
+    } else {
+      iState.incorrect++; iState.streak = 0; iState.hasHadStreak = true;
+      iUpdateTabby();
+      iSetMsg(`❌ Not quite.\nCorrect answer: ${iState.current.canonical}\n(Your typing: ${user || "—"})`, "bad");
+      iRender();
+      await pause(2000);
+      iSetLocked(false);
+      iNext();
+    }
+  }
+  function iSkip(){
+    if (iState.locked) return;
+    iState.incorrect++; iState.streak = 0; iState.hasHadStreak = true;
+    iUpdateTabby();
+    iRender();
+    iSetMsg("Skipped. Moving on…", null);
+    iNext();
+  }
+  function iReset(){
+    iState = { score:0, correct:0, incorrect:0, streak:0, locked:false, current:null, hasHadStreak:false };
+    lastIntegralSignature = null;
+    iRender();
+    iSetLocked(false);
+    setTabbySrc(TABBY[2]);
+    iNext();
+  }
+
+  // =========================================================
+  // TRIG TAB (table + quiz) — unchanged from your working version
+  // =========================================================
+  function stripOuterParens(s){
+    let t = s;
+    while (t.startsWith("(") && t.endsWith(")")) {
+      let depth = 0, ok = true;
+      for (let i=0;i<t.length;i++){
+        if (t[i]==="(") depth++;
+        if (t[i]===")") depth--;
+        if (depth===0 && i < t.length-1) { ok = false; break; }
+      }
+      if (!ok) break;
+      t = t.slice(1,-1);
+    }
+    return t;
+  }
+  function normalizeTrig(s){
+    if (!s) return "";
+    let t = s.toLowerCase();
+    t = t.replace(/\s+/g, "");
+    t = t.replace(/−/g, "-");
+    t = t.replace(/[{}]/g, "");
+    t = t.replace(/√/g, "sqrt");
+    t = t.replace(/sqrt3/g, "sqrt(3)");
+    t = t.replace(/sqrt2/g, "sqrt(2)");
+    t = stripOuterParens(t);
+    t = t.replace(/^\+/, "");
+    return t;
+  }
+  function trigVariants(canon){
+    const base = normalizeTrig(canon);
+    const out = new Set([base, `(${base})`]);
+    const frac = base.match(/^(.+)\/(\d+)$/);
+    if (frac){
+      out.add(`(${frac[1]})/${frac[2]}`);
+      out.add(`${frac[1]}/(${frac[2]})`);
+      out.add(`(${frac[1]})/(${frac[2]})`);
+    }
+    return Array.from(out).map(normalizeTrig);
+  }
+
+  const basicRows = [
+    { t: "0",     sin: "0",            cos: "1" },
+    { t: "π/6",   sin: "1/2",          cos: "sqrt(3)/2" },
+    { t: "π/4",   sin: "sqrt(2)/2",    cos: "sqrt(2)/2" },
+    { t: "π/3",   sin: "sqrt(3)/2",    cos: "1/2" },
+    { t: "π/2",   sin: "1",            cos: "0" },
+  ];
+  function renderBasicTable(){
+    const body = $("basicTableBody");
+    body.innerHTML = "";
+    basicRows.forEach((row, idx) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td class="tcol">${row.t}</td>
+        <td><input class="valInput" id="bt_sin_${idx}" placeholder="..." /></td>
+        <td><input class="valInput" id="bt_cos_${idx}" placeholder="..." /></td>
+      `;
+      body.appendChild(tr);
+    });
+  }
+  function setTableMsg(text, kind){
+    const el = $("t_tableMsg");
+    el.classList.remove("good","bad");
+    if (kind==="good") el.classList.add("good");
+    if (kind==="bad") el.classList.add("bad");
+    el.textContent = text || "";
+  }
+  function checkBasicTable(){
+    const wrong = [];
+    basicRows.forEach((row, idx) => {
+      const s = normalizeTrig($(`bt_sin_${idx}`).value);
+      const c = normalizeTrig($(`bt_cos_${idx}`).value);
+      const sOK = trigVariants(row.sin).includes(s);
+      const cOK = trigVariants(row.cos).includes(c);
+
+      if (!s) wrong.push(`${row.t}: sin(t) is blank`);
+      else if (!sOK) wrong.push(`${row.t}: sin(t) should be ${row.sin}`);
+
+      if (!c) wrong.push(`${row.t}: cos(t) is blank`);
+      else if (!cOK) wrong.push(`${row.t}: cos(t) should be ${row.cos}`);
+    });
+
+    if (wrong.length === 0) setTableMsg("✅ Table is perfect!", "good");
+    else setTableMsg("❌ Fix these:\n" + wrong.join("\n"), "bad");
+  }
+  function clearBasicTable(){
+    basicRows.forEach((_, idx) => {
+      $(`bt_sin_${idx}`).value = "";
+      $(`bt_cos_${idx}`).value = "";
+    });
+    setTableMsg("", null);
+  }
+
+  const trigAngles = [
+    { ang: "2π/3",  sin: "sqrt(3)/2",  cos: "-1/2" },
+    { ang: "3π/4",  sin: "sqrt(2)/2",  cos: "-sqrt(2)/2" },
+    { ang: "5π/6",  sin: "1/2",        cos: "-sqrt(3)/2" },
+    { ang: "7π/6",  sin: "-1/2",       cos: "-sqrt(3)/2" },
+    { ang: "5π/4",  sin: "-sqrt(2)/2", cos: "-sqrt(2)/2" },
+    { ang: "4π/3",  sin: "-sqrt(3)/2", cos: "-1/2" },
+    { ang: "5π/3",  sin: "-sqrt(3)/2", cos: "1/2" },
+    { ang: "7π/4",  sin: "-sqrt(2)/2", cos: "sqrt(2)/2" },
+    { ang: "11π/6", sin: "-1/2",       cos: "sqrt(3)/2" }
+  ];
+  function makeTrigQuizProblem(){
+    const pick = trigAngles[randInt(0, trigAngles.length-1)];
+    const which = Math.random() < 0.5 ? "sin" : "cos";
+    const canonical = pick[which];
+    const expected = trigVariants(canonical);
+    return { displayHtml: `Find ${which}(${pick.ang})`, canonical, expected };
+  }
+
+  let tState = { score:0, correct:0, incorrect:0, streak:0, locked:false, current:null, hasHadStreak:false };
+  function tRender(){
+    $("t_score").textContent = tState.score;
+    $("t_correct").textContent = tState.correct;
+    $("t_incorrect").textContent = tState.incorrect;
+    $("t_streak").textContent = tState.streak;
+  }
+  function tSetMsg(text, kind){
+    const el = $("t_msg");
+    el.classList.remove("good","bad");
+    if (kind==="good") el.classList.add("good");
+    if (kind==="bad") el.classList.add("bad");
+    el.textContent = text || "";
+  }
+  function tSetLocked(lock){
+    tState.locked = lock;
+    $("t_answer").disabled = lock;
+    $("t_submit").disabled = lock;
+    $("t_skip").disabled = lock;
+  }
+  function tUpdateTabby(){
+    if (tState.streak === 0 && tState.hasHadStreak) return setTabbySrc(TABBY[1]);
+    setTabbySrc(tabbyFromStreak(tState.streak));
+  }
+  function tNext(){
+    tState.current = makeTrigQuizProblem();
+    $("t_prompt").innerHTML = tState.current.displayHtml;
+    $("t_answer").value = "";
+    $("t_answer").focus();
+    tSetMsg("", null);
+  }
+  function isCorrectTrig(userRaw, expectedNormList){
+    const u = normalizeTrig(userRaw);
+    if (!u) return false;
+    return expectedNormList.includes(u);
+  }
+  async function tCheck(){
+    if (tState.locked) return;
+    const user = $("t_answer").value;
+    tSetLocked(true);
+
+    const ok = isCorrectTrig(user, tState.current.expected);
+    if (ok){
+      tState.correct++; tState.streak++; tState.hasHadStreak = true;
+      tState.score += 10 + Math.min(10, tState.streak);
+      tUpdateTabby();
+      tSetMsg("✅ Correct!", "good");
+      tRender();
+      await pause(1000);
+      tSetLocked(false);
+      tNext();
+    } else {
+      tState.incorrect++; tState.streak = 0; tState.hasHadStreak = true;
+      tUpdateTabby();
+      tSetMsg(`❌ Not quite.\nCorrect answer: ${tState.current.canonical}\n(Your typing: ${user || "—"})`, "bad");
+      tRender();
+      await pause(2000);
+      tSetLocked(false);
+      tNext();
+    }
+  }
+  function tSkip(){
+    if (tState.locked) return;
+    tState.incorrect++; tState.streak = 0; tState.hasHadStreak = true;
+    tUpdateTabby();
+    tRender();
+    tSetMsg("Skipped. Moving on…", null);
+    tNext();
+  }
+  function tReset(){
+    tState = { score:0, correct:0, incorrect:0, streak:0, locked:false, current:null, hasHadStreak:false };
+    tRender();
+    tSetLocked(false);
+    setTabbySrc(TABBY[2]);
+    tNext();
+  }
+
+  // =========================================================
+  // INTEGRATION METHODS TAB
+  // =========================================================
+  function distinctInts(min, max, count){
+    const vals = [];
+    while (vals.length < count){
+      const x = randInt(min, max);
+      if (!vals.includes(x)) vals.push(x);
+    }
+    return vals;
+  }
+
+  // f(x) selection + derivative
+  function randomF(){
+    const n = randInt(2, 6); // n > 1
+    const options = [
+      { key:"x^n",    fx: `x^${n}`,            fpx: `${n}x^${n-1}`,               n },
+      { key:"sin(nx)",fx: `sin(${n}x)`,       fpx: `${n}cos(${n}x)`,            n },
+      { key:"cos(nx)",fx: `cos(${n}x)`,       fpx: `-${n}sin(${n}x)`,           n },
+      { key:"tan(nx)",fx: `tan(${n}x)`,       fpx: `${n}sec^2(${n}x)`,          n },
+      { key:"sec(nx)",fx: `sec(${n}x)`,       fpx: `${n}sec(${n}x)tan(${n}x)`,  n },
+      { key:"e^(nx)", fx: `e^(${n}x)`,        fpx: `${n}e^(${n}x)`,             n },
+      { key:"ln(x)",  fx: `ln(x)`,            fpx: `1/x`,                       n: null },
+    ];
+    return options[randInt(0, options.length - 1)];
+  }
+
+  function formatIntegrandMultiply(parts){
+    // join pieces with spaces, but avoid "1 " etc. Keep it simple:
+    return parts.filter(Boolean).join(" ");
+  }
+
+  function makeMethodsProblem(){
+    const k = randInt(1, 20);
+    const n = randInt(2, 6); // n > 1 for any that need it
+    const [A, B, C] = distinctInts(3, 20, 3);
+
+    // correct method
+    const correct =
+      (k >= 1 && k <= 7) ? "A" :
+      (k >= 8 && k <= 15) ? "B" : "C";
+
+    let integrand = "";
+
+    // 1–7: U-sub problems using f and f'
+    if (k >= 1 && k <= 7){
+      const f = randomF();
+      const fx = f.fx;
+      const fpx = f.fpx;
+
+      const AfC = `${A}(${fx}) + ${C}`; // A f(x) + C
+
+      if (k === 1) integrand = formatIntegrandMultiply([`${B}(${fpx})`, `cos(${AfC})`]);
+      if (k === 2) integrand = formatIntegrandMultiply([`${B}(${fpx})`, `sin(${AfC})`]);
+      if (k === 3) integrand = formatIntegrandMultiply([`${B}(${fpx})`, `e^(${AfC})`]);
+      if (k === 4) integrand = `${B}(${fpx}) / (${AfC})`;
+      if (k === 5) integrand = formatIntegrandMultiply([`${B}(${fpx})`, `sqrt(${AfC})`]);
+      if (k === 6) integrand = `${B}(${fpx}) / (1 + (${fx})^2)`;
+      if (k === 7) integrand = formatIntegrandMultiply([`${B}(${fpx})`, `(${AfC})^${n}`]);
+    }
+
+    // 8–15: by parts (as you specified)
+    if (k === 8)  integrand = `x^${n} e^(${A}x)`;
+    if (k === 9)  integrand = `x^${n} sin(${A}x)`;
+    if (k === 10) integrand = `x^${n} cos(${A}x)`;
+    if (k === 11) integrand = `x^${n} ln(x)`;
+    if (k === 12) integrand = `e^(${A}x) sin(${B}x)`;
+    if (k === 13) integrand = `e^(${A}x) cos(${B}x)`;
+    if (k === 14) integrand = `arctan(${A}x)`;
+    if (k === 15) integrand = `arcsin(${A}x)`;
+
+    // 16–20: CVS (your list)
+    if (k === 16) integrand = `${A} / (${B} + sqrt(x))`;
+    if (k === 17) integrand = `${A} sqrt(x) / (${B} + sqrt(x))`;
+    if (k === 18) integrand = `${A} x / (${B} + sqrt(x))`;
+    if (k === 19) integrand = `${A} x^(${2*n-1}) sqrt(x^${n} + ${B})`;
+    if (k === 20) integrand = `${A} x^(${2*n-1}) e^(x^${n})`;
+
+    const display = `∫ ${integrand} dx`;
+
+    return {
+      k,
+      displayHtml: display,
+      correct,
+      // for feedback:
+      correctText: correct === "A" ? "A) U-Substitution" :
+                   correct === "B" ? "B) Integration by Parts" :
+                                     "C) Change of Variables Substitution (CVS)"
+    };
+  }
+
+  let mState = { score:0, correct:0, incorrect:0, streak:0, locked:false, current:null, hasHadStreak:false };
+
+  function mRender(){
+    $("m_score").textContent = mState.score;
+    $("m_correct").textContent = mState.correct;
+    $("m_incorrect").textContent = mState.incorrect;
+    $("m_streak").textContent = mState.streak;
+  }
+  function mSetMsg(text, kind){
+    const el = $("m_msg");
+    el.classList.remove("good","bad");
+    if (kind==="good") el.classList.add("good");
+    if (kind==="bad") el.classList.add("bad");
+    el.textContent = text || "";
+  }
+  function mSetLocked(lock){
+    mState.locked = lock;
+    $("m_choiceA").disabled = lock;
+    $("m_choiceB").disabled = lock;
+    $("m_choiceC").disabled = lock;
+    $("m_skip").disabled = lock;
+  }
+  function mUpdateTabby(){
+    if (mState.streak === 0 && mState.hasHadStreak) return setTabbySrc(TABBY[1]);
+    setTabbySrc(tabbyFromStreak(mState.streak));
+  }
+  function mNext(){
+    mState.current = makeMethodsProblem();
+    $("m_problem").innerHTML = mState.current.displayHtml;
+    mSetMsg("", null);
+  }
+  async function mChoose(letter){
+    if (mState.locked) return;
+    mSetLocked(true);
+
+    const ok = (letter === mState.current.correct);
+
+    if (ok){
+      mState.correct++;
+      mState.streak++;
+      mState.hasHadStreak = true;
+      mState.score += 10 + Math.min(10, mState.streak);
+      mUpdateTabby();
+      mSetMsg("✅ Correct!", "good");
+      mRender();
+      await pause(1000);
+      mSetLocked(false);
+      mNext();
+    } else {
+      mState.incorrect++;
+      mState.streak = 0;
+      mState.hasHadStreak = true;
+      mUpdateTabby();
+      mSetMsg(`❌ Not quite.\nCorrect method: ${mState.current.correctText}`, "bad");
+      mRender();
+      await pause(2000);
+      mSetLocked(false);
+      mNext();
+    }
+  }
+  function mSkip(){
+    if (mState.locked) return;
+    mState.incorrect++;
+    mState.streak = 0;
+    mState.hasHadStreak = true;
+    mUpdateTabby();
+    mRender();
+    mSetMsg("Skipped. Moving on…", null);
+    mNext();
+  }
+  function mReset(){
+    mState = { score:0, correct:0, incorrect:0, streak:0, locked:false, current:null, hasHadStreak:false };
+    mRender();
+    mSetLocked(false);
+    setTabbySrc(TABBY[2]);
+    mNext();
+  }
+
+  // =========================================================
+  // Tabs (now 3)
+  // =========================================================
+  function setActiveTab(tab){
+    $("tabIntegrals").classList.toggle("active", tab === "integrals");
+    $("tabTrig").classList.toggle("active", tab === "trig");
+    $("tabMethods").classList.toggle("active", tab === "methods");
+
+    $("integralsSection").classList.toggle("hidden", tab !== "integrals");
+    $("trigSection").classList.toggle("hidden", tab !== "trig");
+    $("methodsSection").classList.toggle("hidden", tab !== "methods");
+
+    // Tabby reflects the active game's streak
+    if (tab === "integrals") {
+      if (iState.streak === 0 && iState.hasHadStreak) setTabbySrc(TABBY[1]);
+      else setTabbySrc(tabbyFromStreak(iState.streak));
+      $("i_answer").focus();
+    } else if (tab === "trig") {
+      if (tState.streak === 0 && tState.hasHadStreak) setTabbySrc(TABBY[1]);
+      else setTabbySrc(tabbyFromStreak(tState.streak));
+      $("t_answer").focus();
+    } else {
+      if (mState.streak === 0 && mState.hasHadStreak) setTabbySrc(TABBY[1]);
+      else setTabbySrc(tabbyFromStreak(mState.streak));
+      // no text input; nothing to focus
+    }
+  }
+
+  // =========================================================
+  // Wire up events
+  // =========================================================
+  // Integrals
+  $("i_submit").addEventListener("click", iCheck);
+  $("i_skip").addEventListener("click", iSkip);
+  $("i_reset").addEventListener("click", iReset);
+  $("i_answer").addEventListener("keydown", (e) => { if (e.key === "Enter") iCheck(); });
+
+  // Trig table
+  $("t_checkTable").addEventListener("click", checkBasicTable);
+  $("t_clearTable").addEventListener("click", clearBasicTable);
+
+  // Trig quiz
+  $("t_submit").addEventListener("click", tCheck);
+  $("t_skip").addEventListener("click", tSkip);
+  $("t_reset").addEventListener("click", tReset);
+  $("t_answer").addEventListener("keydown", (e) => { if (e.key === "Enter") tCheck(); });
+
+  // Methods
+  $("m_choiceA").addEventListener("click", () => mChoose("A"));
+  $("m_choiceB").addEventListener("click", () => mChoose("B"));
+  $("m_choiceC").addEventListener("click", () => mChoose("C"));
+  $("m_skip").addEventListener("click", mSkip);
+  $("m_reset").addEventListener("click", mReset);
+
+  // Keyboard shortcuts for methods tab
+  document.addEventListener("keydown", (e) => {
+    // only if methods tab visible
+    const methodsVisible = !$("methodsSection").classList.contains("hidden");
+    if (!methodsVisible) return;
+    const k = e.key.toLowerCase();
+    if (k === "a") mChoose("A");
+    if (k === "b") mChoose("B");
+    if (k === "c") mChoose("C");
+  });
+
+  // Tabs
+  $("tabIntegrals").addEventListener("click", () => setActiveTab("integrals"));
+  $("tabTrig").addEventListener("click", () => setActiveTab("trig"));
+  $("tabMethods").addEventListener("click", () => setActiveTab("methods"));
+
+  // =========================================================
+  // Init
+  // =========================================================
+  renderBasicTable();
+
+  // init integrals
+  iRender();
+  setTabbySrc(TABBY[2]);
+  iNext();
+
+  // init trig quiz
+  tRender();
+  tNext();
+
+  // init methods
+  mRender();
+  mNext();
+
+  // start on integrals
+  setActiveTab("integrals");
+})();
+</script>
+</body>
+</html>
