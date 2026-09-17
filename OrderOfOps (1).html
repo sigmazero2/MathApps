@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Order of Operations (Integers)</title>
+  <style>
+    :root{
+      --bg:#0b1020;
+      --card:rgba(255,255,255,0.08);
+      --text:#e9eefc;
+      --muted:rgba(233,238,252,0.75);
+      --good:#1f8a4c;
+      --bad:#c62828;
+      --accent:#2a5bd7;
+      --border:rgba(255,255,255,0.16);
+
+      --dash: rgba(255,255,255,0.22);
+      --cardShadow: rgba(0,0,0,0.35);
+      --panelBg: rgba(0,0,0,0.15);
+      --panelBg2: rgba(0,0,0,0.12);
+      --panelBg3: rgba(0,0,0,0.14);
+      --choiceBg: rgba(0,0,0,0.20);
+      --inputBg: rgba(0,0,0,0.25);
+      --btnBg: rgba(122,162,255,0.18);
+      --btnBgHover: rgba(122,162,255,0.28);
+      --bar: rgba(233,238,252,0.9);
+    }
+
+    body.projector{
+      --bg:#ffffff;
+      --card:#ffffff;
+
+      --text:#000000;
+      --muted:#000000;
+      --good:#000000;
+      --bad:#000000;
+      --accent:#000000;
+
+      --border:rgba(0,0,0,0.30);
+      --dash: rgba(0,0,0,0.35);
+      --cardShadow: rgba(0,0,0,0.10);
+
+      --panelBg: rgba(0,0,0,0.02);
+      --panelBg2: rgba(0,0,0,0.02);
+      --panelBg3: rgba(0,0,0,0.02);
+      --choiceBg: rgba(0,0,0,0.01);
+      --inputBg: rgba(0,0,0,0.02);
+
+      --btnBg: rgba(0,0,0,0.06);
+      --btnBgHover: rgba(0,0,0,0.10);
+
+      --bar: rgba(0,0,0,1);
+    }
+
+    /* hard-force ALL text to black in projector mode */
+    body.projector, body.projector *{
+      color:#000 !important;
+      text-shadow:none !important;
+    }
+
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      background:
+        radial-gradient(1200px 600px at 20% 10%, rgba(122,162,255,0.25), transparent 60%),
+        radial-gradient(1200px 600px at 80% 90%, rgba(55,214,122,0.18), transparent 60%),
+        var(--bg);
+      color:var(--text);
+      min-height:100vh;
+      display:grid;
+      place-items:center;
+      padding:24px;
+    }
+    body.projector{ background: var(--bg); }
+
+    .wrap{ width:min(900px,100%); display:grid; gap:14px; }
+
+    .card{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:18px 18px 12px;
+      backdrop-filter:blur(10px);
+      box-shadow:0 10px 40px var(--cardShadow);
+    }
+    body.projector .card{ backdrop-filter:none; }
+
+    .top{
+      display:flex;
+      gap:14px;
+      align-items:center;
+      justify-content:space-between;
+      flex-wrap:wrap;
+    }
+    .title{ font-size:18px; font-weight:700; letter-spacing:0.2px; }
+
+    .rightTop{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    .stats{
+      display:flex;
+      gap:12px;
+      flex-wrap:wrap;
+      color:var(--muted);
+      font-size:13px;
+    }
+
+    .toggle{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:var(--panelBg);
+      user-select:none;
+      cursor:pointer;
+      font-size:13px;
+      color:var(--muted);
+    }
+    .toggle input{ cursor:pointer; }
+
+    .expr{
+      margin-top:12px;
+      padding:14px 14px;
+      border-radius:14px;
+      border:1px dashed var(--dash);
+      background:var(--panelBg);
+      font-size:28px;
+      line-height:1.2;
+      text-align:center;
+      word-break:break-word;
+    }
+
+    /* stacked fraction */
+    .frac{
+      display:inline-flex;
+      flex-direction:column;
+      align-items:center;
+      vertical-align:middle;
+      margin:0 2px;
+      font-size:0.95em;
+      line-height:1.05;
+    }
+    .frac .top{ padding:0 6px 2px; }
+    .frac .bar{ width:100%; border-top:2px solid var(--bar); }
+    .frac .bot{ padding:2px 6px 0px; }
+
+    .steps{
+      margin-top:12px;
+      padding:12px 12px;
+      border-radius:14px;
+      border:1px solid var(--border);
+      background:var(--panelBg2);
+      display:none;
+    }
+    .stepsTitle{
+      font-size:13px;
+      color:var(--muted);
+      text-align:center;
+      margin-bottom:8px;
+    }
+    .stepLine{
+      font-size:18px;
+      text-align:center;
+      padding:8px 10px;
+      border-radius:12px;
+      border:1px solid var(--border);
+      background:var(--panelBg);
+      margin-top:8px;
+      line-height:1.25;
+    }
+
+    .opBox{
+      margin-top:12px;
+      padding:12px 12px;
+      border-radius:14px;
+      border:1px solid var(--border);
+      background:var(--panelBg3);
+    }
+    .opTitle{
+      font-size:14px;
+      color:var(--muted);
+      margin-bottom:10px;
+      text-align:center;
+    }
+    .choices{
+      display:grid;
+      gap:8px;
+      grid-template-columns:1fr;
+    }
+    .choice{
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+      padding:10px 10px;
+      border-radius:12px;
+      border:1px solid var(--border);
+      background:var(--choiceBg);
+      cursor:pointer;
+      user-select:none;
+    }
+    .choice:hover{ border-color: rgba(0,0,0,0.6); }
+    body:not(.projector) .choice:hover{ border-color: rgba(122,162,255,0.45); }
+    .choice input{ margin-top:3px; }
+    .choiceText{ font-size:18px; line-height:1.2; }
+
+    .row{
+      display:grid;
+      grid-template-columns:1fr auto;
+      gap:10px;
+      margin-top:14px;
+    }
+    input[type="text"]{
+      width:100%;
+      padding:12px 12px;
+      border-radius:12px;
+      border:1px solid var(--border);
+      background:var(--inputBg);
+      color:var(--text);
+      font-size:18px;
+      outline:none;
+    }
+    input[type="text"]:disabled{ opacity:0.55; cursor:not-allowed; }
+
+    button{
+      padding:12px 14px;
+      border-radius:12px;
+      border:1px solid var(--border);
+      background:var(--btnBg);
+      color:var(--text);
+      font-size:16px;
+      font-weight:650;
+      cursor:pointer;
+      transition:transform 0.05s ease, background 0.2s ease;
+      min-width:170px;
+    }
+    button:hover{ background:var(--btnBgHover); }
+    button:active{ transform:translateY(1px); }
+    button:disabled{ opacity:0.55; cursor:not-allowed; }
+
+    .feedback{
+      margin-top:12px;
+      min-height:28px;
+      font-size:16px;
+      text-align:center;
+      color:var(--muted);
+    }
+    .good{ color:var(--good); }
+    .bad{ color:var(--bad); }
+
+    .kbd{
+      font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace;
+      font-size:12px;
+      padding:2px 6px;
+      border-radius:8px;
+      border:1px solid var(--border);
+      background:var(--panelBg);
+      color:var(--text);
+    }
+
+    .footer{
+      margin-top:10px;
+      padding-top:10px;
+      border-top:1px solid var(--border);
+      text-align:center;
+      font-size:12px;
+      color:var(--muted);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="top">
+        <div class="title">Order of Operations — Integers</div>
+
+        <div class="rightTop">
+          <div class="stats">
+            <div>Correct: <span id="correct">0</span></div>
+            <div>Incorrect: <span id="incorrect">0</span></div>
+            <div>Streak: <span id="streak">0</span></div>
+          </div>
+
+          <label class="toggle" title="Projector mode (white background)">
+            <input id="projectorToggle" type="checkbox" />
+            Projector mode
+          </label>
+        </div>
+      </div>
+
+      <div id="expr" class="expr">Loading…</div>
+
+      <div id="steps" class="steps">
+        <div class="stepsTitle">Completed steps</div>
+        <div id="stepLines"></div>
+      </div>
+
+      <div id="opBox" class="opBox">
+        <div id="opTitle" class="opTitle">Which operation should be done first?</div>
+        <div id="choices" class="choices"></div>
+      </div>
+
+      <div class="row">
+        <input id="answer" type="text" inputmode="numeric" autocomplete="off" placeholder="Then enter the integer answer…" />
+        <button id="submit">Check operation</button>
+      </div>
+
+      <div id="feedback" class="feedback muted">
+        Tip: press <span class="kbd">Enter</span> to check. Use <span class="kbd">1</span>, <span class="kbd">2</span>, <span class="kbd">3</span>… to pick an option.
+      </div>
+
+      <div class="footer">
+        Created by Prof Spyro Roubos with help from ChatGPT
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      "use strict";
+
+      // ===== Utilities =====
+      function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+      function randNonTrivialInt(min, max) {
+        while (true) {
+          const n = randInt(min, max);
+          if (n !== -1 && n !== 0 && n !== 1) return n;
+        }
+      }
+      function choice(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+      function abs(n) { return Math.abs(n); }
+
+      function parseIntegerStrict(s) {
+        if (typeof s !== "string") return null;
+        const t = s.trim();
+        if (!/^[+-]?\d+$/.test(t)) return null;
+        const n = Number(t);
+        if (!Number.isSafeInteger(n)) return null;
+        return n;
+      }
+
+      /**
+       * Format an integer for display.
+       * - If n is negative, we show (n) UNLESS it's already inside parentheses you are writing.
+       * - Pass alreadyWrapped=true when you are literally writing your own parentheses around this single integer,
+       *   e.g. `(${fmtNum(x,true)})` so you don't get ((-4)).
+       */
+      function fmtNum(n, alreadyWrapped = false) {
+        if (alreadyWrapped) return String(n);
+        return (n < 0) ? `(${n})` : String(n);
+      }
+
+      function fracHTML(topHTML, botHTML) {
+        return `<span class="frac"><span class="top">${topHTML}</span><span class="bar"></span><span class="bot">${botHTML}</span></span>`;
+      }
+
+      function shuffle(array) {
+        const a = array.slice();
+        for (let i = a.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [a[i], a[j]] = [a[j], a[i]];
+        }
+        return a;
+      }
+
+      // ===== Generators =====
+      const NUM_MIN = -12, NUM_MAX = 12;
+
+      function genForm1() {
+        const a = randNonTrivialInt(NUM_MIN, NUM_MAX);
+        const b = randNonTrivialInt(NUM_MIN, NUM_MAX);
+        const c = randNonTrivialInt(NUM_MIN, NUM_MAX);
+        const d = randNonTrivialInt(NUM_MIN, NUM_MAX);
+
+        return {
+          exprHTML: `${fmtNum(a)} + ${fmtNum(b)}(${fmtNum(c)} - ${fmtNum(d)})`,
+          answer: a + b * (c - d),
+          op1: {
+            choices: [
+              { id:"A", textHTML: `${fmtNum(a)} + ${fmtNum(b)}` },
+              { id:"B", textHTML: `${fmtNum(b)} · ${fmtNum(c)}` },
+              { id:"C", textHTML: `${fmtNum(c)} - ${fmtNum(d)}` }
+            ],
+            correctId: "C",
+            compute: (ctx) => (ctx.r1 = (c - d)),
+            step1ExprHTML: (ctx) => `Step 1: ${fmtNum(a)} + ${fmtNum(b)}(${fmtNum(ctx.r1, true)})`
+          },
+          op2: {
+            correctId: "B",
+            choicesFn: (ctx) => [
+              { id:"A", textHTML: `${fmtNum(a)} + ${fmtNum(b)}` },
+              { id:"B", textHTML: `${fmtNum(b)} · ${fmtNum(ctx.r1)}` }
+            ],
+            compute: (ctx) => (ctx.r2 = b * ctx.r1),
+            step2ExprHTML: (ctx) => `Step 2: ${fmtNum(a)} + ${fmtNum(ctx.r2)}`
+          },
+          op3: null
+        };
+      }
+
+      function genForm2() {
+        const a = randNonTrivialInt(NUM_MIN, NUM_MAX);
+        const b = randNonTrivialInt(NUM_MIN, NUM_MAX);
+        const c = randNonTrivialInt(NUM_MIN, NUM_MAX);
+        const d = randNonTrivialInt(NUM_MIN, NUM_MAX);
+
+        return {
+          exprHTML: `(${fmtNum(a)} + ${fmtNum(b)})(${fmtNum(c)} + ${fmtNum(d)})`,
+          answer: (a + b) * (c + d),
+          op1: {
+            choices: [
+              { id:"A", textHTML: `${fmtNum(a)} + ${fmtNum(b)}` },
+              { id:"B", textHTML: `${fmtNum(b)} · ${fmtNum(c)}` },
+              { id:"C", textHTML: `${fmtNum(c)} + ${fmtNum(d)}` }
+            ],
+            correctId: "A",
+            compute: (ctx) => (ctx.r1 = (a + b)),
+            step1ExprHTML: (ctx) => `Step 1: (${fmtNum(ctx.r1, true)})(${fmtNum(c)} + ${fmtNum(d)})`
+          },
+          op2: {
+            correctId: "B",
+            choicesFn: (ctx) => [
+              { id:"A", textHTML: `${fmtNum(ctx.r1)} · ${fmtNum(c)}` },
+              { id:"B", textHTML: `${fmtNum(c)} + ${fmtNum(d)}` }
+            ],
+            compute: (ctx) => (ctx.r2 = (c + d)),
+            step2ExprHTML: (ctx) => `Step 2: (${fmtNum(ctx.r1, true)})(${fmtNum(ctx.r2, true)})`
+          },
+          op3: null
+        };
+      }
+
+      function genForm3() {
+        const a = randNonTrivialInt(NUM_MIN, NUM_MAX);
+        const b = randNonTrivialInt(NUM_MIN, NUM_MAX);
+        const c = randNonTrivialInt(NUM_MIN, NUM_MAX);
+
+        return {
+          exprHTML: `${fmtNum(a)}(${fmtNum(b, true)}) - ${fmtNum(c)}<sup>2</sup>`,
+          answer: a * b - (c ** 2),
+          op1: {
+            choices: [
+              { id:"A", textHTML: `${fmtNum(a)} · ${fmtNum(b)}` },
+              { id:"B", textHTML: `${fmtNum(b)} - ${fmtNum(c)}` },
+              { id:"C", textHTML: `${fmtNum(c)}<sup>2</sup>` }
+            ],
+            correctId: "C",
+            compute: (ctx) => (ctx.r1 = (c ** 2)),
+            step1ExprHTML: (ctx) => `Step 1: ${fmtNum(a)}(${fmtNum(b, true)}) - ${fmtNum(ctx.r1)}`
+          },
+          op2: {
+            correctId: "A",
+            choicesFn: (ctx) => [
+              { id:"A", textHTML: `${fmtNum(a)} · ${fmtNum(b)}` },
+              { id:"B", textHTML: `${fmtNum(b)} - ${fmtNum(ctx.r1)}` }
+            ],
+            compute: (ctx) => (ctx.r2 = (a * b)),
+            step2ExprHTML: (ctx) => `Step 2: ${fmtNum(ctx.r2)} - ${fmtNum(ctx.r1)}`
+          },
+          op3: null
+        };
+      }
+
+      function genForm4() {
+        while (true) {
+          const d = randNonTrivialInt(NUM_MIN, NUM_MAX);
+          const e = randNonTrivialInt(NUM_MIN, NUM_MAX);
+          const den = d + e;
+          if (den === 0) continue;
+
+          const b = randNonTrivialInt(NUM_MIN, NUM_MAX);
+          const c = randNonTrivialInt(NUM_MIN, NUM_MAX);
+          const k = randNonTrivialInt(-9, 9);
+
+          const a = k * den - b * c;
+          if (a === -1 || a === 0 || a === 1) continue;
+
+          const val = (a + b * c) / den;
+          if (!Number.isInteger(val)) continue;
+
+          return {
+            exprHTML: fracHTML(
+              `(${fmtNum(a)} + ${fmtNum(b)} · ${fmtNum(c)})`,
+              `(${fmtNum(d)} + ${fmtNum(e)})`
+            ),
+            answer: val,
+            op1: {
+              choices: [
+                { id:"A", textHTML: `${fmtNum(a)} + ${fmtNum(b)}` },
+                { id:"B", textHTML: `${fmtNum(b)} · ${fmtNum(c)}` },
+                { id:"C", textHTML: fracHTML(fmtNum(c), fmtNum(d)) },
+                { id:"D", textHTML: `${fmtNum(d)} + ${fmtNum(e)}` }
+              ],
+              correctId: "B",
+              compute: (ctx) => (ctx.r1 = (b * c)),
+              step1ExprHTML: (ctx) => `Step 1: ` + fracHTML(
+                `(${fmtNum(a)} + ${fmtNum(ctx.r1)})`,
+                `(${fmtNum(d)} + ${fmtNum(e)})`
+              )
+            },
+            op2: {
+              correctId: "A",
+              choicesFn: (ctx) => [
+                { id:"A", textHTML: `${fmtNum(a)} + ${fmtNum(ctx.r1)}` },
+                { id:"B", textHTML: fracHTML(fmtNum(ctx.r1), fmtNum(d)) },
+                { id:"C", textHTML: `${fmtNum(d)} + ${fmtNum(e)}` }
+              ],
+              compute: (ctx) => (ctx.r2 = (a + ctx.r1)),
+              step2ExprHTML: (ctx) => `Step 2: ` + fracHTML(
+                `${fmtNum(ctx.r2)}`,
+                `(${fmtNum(d)} + ${fmtNum(e)})`
+              )
+            },
+            op3: {
+              correctId: "B",
+              choicesFn: (ctx) => [
+                { id:"A", textHTML: fracHTML(`${fmtNum(ctx.r2)}`, `${fmtNum(d)}`) },
+                { id:"B", textHTML: `${fmtNum(d)} + ${fmtNum(e)}` }
+              ],
+              compute: (ctx) => (ctx.r3 = (d + e)),
+              step3ExprHTML: (ctx) => `Step 3: ` + fracHTML(
+                `${fmtNum(ctx.r2)}`,
+                `${fmtNum(ctx.r3)}`
+              )
+            }
+          };
+        }
+      }
+
+      function genForm5() {
+        const triples = [
+          [3,4,5],[5,12,13],[6,8,10],[7,24,25],[8,15,17],[9,12,15],[10,24,26],[12,16,20],[15,20,25]
+        ];
+        while (true) {
+          const [a0,b0,c0] = choice(triples);
+          const scale = randInt(1,4);
+
+          let a = a0 * scale;
+          let b = b0 * scale;
+          if (Math.random() < 0.5) a = -a;
+          if (Math.random() < 0.5) b = -b;
+
+          if ([-1,0,1].includes(a) || [-1,0,1].includes(b)) continue;
+
+          const ans = c0 * scale;
+
+          return {
+            exprHTML: `√(${fmtNum(a)}<sup>2</sup> + ${fmtNum(b)}<sup>2</sup>)`,
+            answer: ans,
+            op1: {
+              choices: [
+                { id:"A", textHTML: `√` },
+                { id:"B", textHTML: `${fmtNum(a)}<sup>2</sup>` },
+                { id:"C", textHTML: `${fmtNum(a)} + ${fmtNum(b)}` },
+                { id:"D", textHTML: `${fmtNum(b)}<sup>2</sup>` }
+              ],
+              correctId: "B",
+              compute: (ctx) => (ctx.r1 = (a ** 2)),
+              step1ExprHTML: (ctx) => `Step 1: √(${fmtNum(ctx.r1)} + ${fmtNum(b)}<sup>2</sup>)`
+            },
+            op2: {
+              correctId: "C",
+              choicesFn: (ctx) => [
+                { id:"A", textHTML: `√` },
+                { id:"B", textHTML: `${fmtNum(ctx.r1)} + ${fmtNum(b)}` },
+                { id:"C", textHTML: `${fmtNum(b)}<sup>2</sup>` }
+              ],
+              compute: (ctx) => (ctx.r2 = (b ** 2)),
+              step2ExprHTML: (ctx) => `Step 2: √(${fmtNum(ctx.r1)} + ${fmtNum(ctx.r2)})`
+            },
+            op3: {
+              correctId: "B",
+              choicesFn: (ctx) => [
+                { id:"A", textHTML: `√` },
+                { id:"B", textHTML: `${fmtNum(ctx.r1)} + ${fmtNum(ctx.r2)}` }
+              ],
+              compute: (ctx) => (ctx.r3 = (ctx.r1 + ctx.r2)),
+              step3ExprHTML: (ctx) => `Step 3: √(${fmtNum(ctx.r3)})`
+            }
+          };
+        }
+      }
+
+      function genForm6() {
+        const a = randNonTrivialInt(NUM_MIN, NUM_MAX);
+        const b = randNonTrivialInt(NUM_MIN, NUM_MAX);
+        const c = randNonTrivialInt(NUM_MIN, NUM_MAX);
+        const d = randNonTrivialInt(NUM_MIN, NUM_MAX);
+
+        return {
+          exprHTML: `${fmtNum(a)} - |${fmtNum(b)}| + ${fmtNum(c)}(${fmtNum(d, true)})`,
+          answer: a - abs(b) + c * d,
+          op1: {
+            choices: [
+              { id:"A", textHTML: `${fmtNum(a)} - ${fmtNum(b)}` },
+              { id:"B", textHTML: `|${fmtNum(b)}|` },
+              { id:"C", textHTML: `${fmtNum(c)} · ${fmtNum(d)}` }
+            ],
+            correctId: "B",
+            compute: (ctx) => (ctx.r1 = abs(b)),
+            step1ExprHTML: (ctx) => `Step 1: ${fmtNum(a)} - ${fmtNum(ctx.r1)} + ${fmtNum(c)} · ${fmtNum(d)}`
+          },
+          op2: {
+            correctId: "C",
+            choicesFn: (ctx) => [
+              { id:"A", textHTML: `${fmtNum(a)} - ${fmtNum(ctx.r1)}` },
+              { id:"B", textHTML: `${fmtNum(ctx.r1)} + ${fmtNum(c)}` },
+              { id:"C", textHTML: `${fmtNum(c)} · ${fmtNum(d)}` }
+            ],
+            compute: (ctx) => (ctx.r2 = (c * d)),
+            step2ExprHTML: (ctx) => `Step 2: ${fmtNum(a)} - ${fmtNum(ctx.r1)} + ${fmtNum(ctx.r2)}`
+          },
+          op3: null
+        };
+      }
+
+      function genForm7() {
+        const a = randNonTrivialInt(NUM_MIN, NUM_MAX);
+        const b = randNonTrivialInt(NUM_MIN, NUM_MAX);
+        const c = randNonTrivialInt(NUM_MIN, NUM_MAX);
+        const d = randNonTrivialInt(NUM_MIN, NUM_MAX);
+
+        return {
+          exprHTML: `${fmtNum(a)}(${fmtNum(b, true)}) - ${fmtNum(c)}(${fmtNum(d, true)})`,
+          answer: a * b - c * d,
+          op1: {
+            choices: [
+              { id:"A", textHTML: `${fmtNum(a)} · ${fmtNum(b)}` },
+              { id:"B", textHTML: `${fmtNum(b)} - ${fmtNum(c)}` },
+              { id:"C", textHTML: `${fmtNum(c)} · ${fmtNum(d)}` }
+            ],
+            correctId: "A",
+            compute: (ctx) => (ctx.r1 = (a * b)),
+            step1ExprHTML: (ctx) => `Step 1: ${fmtNum(ctx.r1)} - ${fmtNum(c)}(${fmtNum(d, true)})`
+          },
+          op2: {
+            correctId: "B",
+            choicesFn: (ctx) => [
+              { id:"A", textHTML: `${fmtNum(ctx.r1)} - ${fmtNum(c)}` },
+              { id:"B", textHTML: `${fmtNum(c)} · ${fmtNum(d)}` }
+            ],
+            compute: (ctx) => (ctx.r2 = (c * d)),
+            step2ExprHTML: (ctx) => `Step 2: ${fmtNum(ctx.r1)} - ${fmtNum(ctx.r2)}`
+          },
+          op3: null
+        };
+      }
+
+      function genForm8() {
+        while (true) {
+          const a = randNonTrivialInt(NUM_MIN, NUM_MAX);
+          const c = randNonTrivialInt(2, 9);
+          const q = randNonTrivialInt(-9, 9);
+          const b = q * c;
+          if ([-1,0,1].includes(b)) continue;
+
+          const d = randNonTrivialInt(NUM_MIN, NUM_MAX);
+          const ans = a - (b / c) + d;
+          if (!Number.isInteger(ans)) continue;
+
+          return {
+            exprHTML: `${fmtNum(a)} - (${fracHTML(fmtNum(b), fmtNum(c))}) + ${fmtNum(d)}`,
+            answer: ans,
+            op1: {
+              choices: [
+                { id:"A", textHTML: `${fmtNum(a)} - ${fmtNum(b)}` },
+                { id:"B", textHTML: fracHTML(fmtNum(b), fmtNum(c)) },
+                { id:"C", textHTML: `${fmtNum(c)} + ${fmtNum(d)}` }
+              ],
+              correctId: "B",
+              compute: (ctx) => (ctx.r1 = (b / c)),
+              step1ExprHTML: (ctx) => `Step 1: ${fmtNum(a)} - ${fmtNum(ctx.r1)} + ${fmtNum(d)}`
+            },
+            op2: {
+              correctId: "A",
+              choicesFn: (ctx) => [
+                { id:"A", textHTML: `${fmtNum(a)} - ${fmtNum(ctx.r1)}` },
+                { id:"B", textHTML: `${fmtNum(ctx.r1)} + ${fmtNum(d)}` }
+              ],
+              compute: (ctx) => (ctx.r2 = (a - ctx.r1)),
+              step2ExprHTML: (ctx) => `Step 2: ${fmtNum(ctx.r2)} + ${fmtNum(d)}`
+            },
+            op3: null
+          };
+        }
+      }
+
+      function genForm9() {
+        while (true) {
+          const a = randNonTrivialInt(NUM_MIN, NUM_MAX);
+          const b = randNonTrivialInt(NUM_MIN, NUM_MAX);
+          const c = randNonTrivialInt(NUM_MIN, NUM_MAX);
+          if ([-1,0,1].includes(b) || [-1,0,1].includes(c)) continue;
+          if (!(b < c)) continue;
+
+          return {
+            exprHTML: `${fmtNum(a)}|${fmtNum(b)} - ${fmtNum(c)}|`,
+            answer: a * abs(b - c),
+            op1: {
+              choices: [
+                { id:"A", textHTML: `${fmtNum(a)} · ${fmtNum(b)}` },
+                { id:"B", textHTML: `|${fmtNum(b)} - ${fmtNum(c)}|` },
+                { id:"C", textHTML: `${fmtNum(b)} - ${fmtNum(c)}` }
+              ],
+              correctId: "C",
+              compute: (ctx) => (ctx.r1 = (b - c)),
+              step1ExprHTML: (ctx) => `Step 1: ${fmtNum(a)} |${fmtNum(ctx.r1, true)}|`
+            },
+            op2: {
+              correctId: "B",
+              choicesFn: (ctx) => [
+                { id:"A", textHTML: `${fmtNum(a)} · ${fmtNum(ctx.r1)}` },
+                { id:"B", textHTML: `|${fmtNum(ctx.r1, true)}|` }
+              ],
+              compute: (ctx) => (ctx.r2 = abs(ctx.r1)),
+              step2ExprHTML: (ctx) => `Step 2: ${fmtNum(a)} · ${fmtNum(ctx.r2)}`
+            },
+            op3: null
+          };
+        }
+      }
+
+      function genForm10() {
+        const a = randNonTrivialInt(NUM_MIN, NUM_MAX);
+        const b = randNonTrivialInt(NUM_MIN, NUM_MAX);
+        const c = randNonTrivialInt(NUM_MIN, NUM_MAX);
+        const d = randNonTrivialInt(NUM_MIN, NUM_MAX);
+
+        return {
+          exprHTML: `${fmtNum(a)} + |${fmtNum(b)}| - ${fmtNum(c)}(${fmtNum(d, true)})`,
+          answer: (a + abs(b)) - (c * d),
+          op1: {
+            choices: [
+              { id:"A", textHTML: `${fmtNum(a)} + ${fmtNum(b)}` },
+              { id:"B", textHTML: `|${fmtNum(b)}|` },
+              { id:"C", textHTML: `${fmtNum(c)} · ${fmtNum(d)}` }
+            ],
+            correctId: "B",
+            compute: (ctx) => (ctx.r1 = abs(b)),
+            step1ExprHTML: (ctx) => `Step 1: ${fmtNum(a)} + ${fmtNum(ctx.r1)} - ${fmtNum(c)} · ${fmtNum(d)}`
+          },
+          op2: {
+            correctId: "C",
+            choicesFn: (ctx) => [
+              { id:"A", textHTML: `${fmtNum(a)} + ${fmtNum(ctx.r1)}` },
+              { id:"B", textHTML: `${fmtNum(ctx.r1)} - ${fmtNum(c)}` },
+              { id:"C", textHTML: `${fmtNum(c)} · ${fmtNum(d)}` }
+            ],
+            compute: (ctx) => (ctx.r2 = (c * d)),
+            step2ExprHTML: (ctx) => `Step 2: ${fmtNum(a)} + ${fmtNum(ctx.r1)} - ${fmtNum(ctx.r2)}`
+          },
+          op3: {
+            correctId: "A",
+            choicesFn: (ctx) => [
+              { id:"A", textHTML: `${fmtNum(a)} + ${fmtNum(ctx.r1)}` },
+              { id:"B", textHTML: `${fmtNum(ctx.r1)} - ${fmtNum(ctx.r2)}` }
+            ],
+            compute: (ctx) => (ctx.r3 = (a + ctx.r1)),
+            step3ExprHTML: (ctx) => `Step 3: ${fmtNum(ctx.r3)} - ${fmtNum(ctx.r2)}`
+          }
+        };
+      }
+
+      const generators = [
+        genForm1, genForm2, genForm3, genForm4, genForm5,
+        genForm6, genForm7, genForm8, genForm9, genForm10
+      ];
+
+      // ===== State =====
+      const state = {
+        current: null,
+        lastForms: [],
+        correct: 0,
+        incorrect: 0,
+        streak: 0,
+        locked: false,
+        stage: "op1",
+        ctx: {}
+      };
+
+      // ===== DOM =====
+      const exprEl = document.getElementById("expr");
+      const ansEl = document.getElementById("answer");
+      const submitEl = document.getElementById("submit");
+      const fbEl = document.getElementById("feedback");
+      const opTitleEl = document.getElementById("opTitle");
+      const choicesEl = document.getElementById("choices");
+
+      const stepsEl = document.getElementById("steps");
+      const stepLinesEl = document.getElementById("stepLines");
+
+      const correctEl = document.getElementById("correct");
+      const incorrectEl = document.getElementById("incorrect");
+      const streakEl = document.getElementById("streak");
+
+      // ===== Projector mode (persisted) =====
+      const projectorToggle = document.getElementById("projectorToggle");
+      function applyProjectorMode(on){
+        document.body.classList.toggle("projector", !!on);
+      }
+      try{
+        const saved = localStorage.getItem("projectorMode");
+        const on = saved === "1";
+        projectorToggle.checked = on;
+        applyProjectorMode(on);
+      } catch(e){}
+
+      projectorToggle.addEventListener("change", () => {
+        const on = projectorToggle.checked;
+        applyProjectorMode(on);
+        try{ localStorage.setItem("projectorMode", on ? "1" : "0"); } catch(e){}
+      });
+
+      function setFeedback(text, kind) {
+        fbEl.className = "feedback";
+        if (kind === "good") fbEl.classList.add("good");
+        else if (kind === "bad") fbEl.classList.add("bad");
+        else fbEl.classList.add("muted");
+        fbEl.innerHTML = text;
+      }
+
+      function updateStats() {
+        correctEl.textContent = String(state.correct);
+        incorrectEl.textContent = String(state.incorrect);
+        streakEl.textContent = String(state.streak);
+      }
+
+      function setLocked(on) {
+        state.locked = on;
+
+        const radios = choicesEl.querySelectorAll('input[type="radio"]');
+        radios.forEach(r => r.disabled = on || state.stage === "ans");
+
+        ansEl.disabled = on || state.stage !== "ans";
+        submitEl.disabled = on;
+      }
+
+      function renderChoices(choices) {
+        choicesEl.innerHTML = "";
+        const shuffled = shuffle(choices);
+        shuffled.forEach((ch) => {
+          const label = document.createElement("label");
+          label.className = "choice";
+          label.innerHTML = `
+            <input type="radio" name="opchoice" value="${ch.id}">
+            <div class="choiceText">${ch.textHTML}</div>
+          `;
+          choicesEl.appendChild(label);
+        });
+      }
+
+      function getSelectedChoiceId() {
+        const checked = choicesEl.querySelector('input[name="opchoice"]:checked');
+        return checked ? checked.value : null;
+      }
+
+      function showSteps(lines) {
+        if (!lines || lines.length === 0) {
+          stepsEl.style.display = "none";
+          stepLinesEl.innerHTML = "";
+          return;
+        }
+        stepsEl.style.display = "block";
+        stepLinesEl.innerHTML = lines.map(x => `<div class="stepLine">${x}</div>`).join("");
+      }
+
+      function pickNextProblem() {
+        let idx = 0;
+        for (let tries = 0; tries < 200; tries++) {
+          idx = randInt(0, generators.length - 1);
+          const formId = idx + 1;
+          if (!state.lastForms.includes(formId)) break;
+        }
+
+        const prob = generators[idx]();
+
+        state.lastForms.push(idx + 1);
+        if (state.lastForms.length > 2) state.lastForms.shift();
+
+        state.current = prob;
+        state.stage = "op1";
+        state.ctx = {};
+
+        exprEl.innerHTML = prob.exprHTML;
+        renderChoices(prob.op1.choices);
+        opTitleEl.textContent = "Which operation should be done first?";
+        submitEl.textContent = "Check operation";
+
+        ansEl.value = "";
+        ansEl.disabled = true;
+
+        showSteps([]);
+        updateStats();
+        setLocked(false);
+        setFeedback(`Choose the first operation.`, "muted");
+      }
+
+      // ===== Progression helpers =====
+      function goToOp2() {
+        const p = state.current;
+        state.stage = "op2";
+        opTitleEl.textContent = "Which operation should be done second?";
+        renderChoices(p.op2.choicesFn(state.ctx));
+        submitEl.textContent = "Check operation";
+        ansEl.disabled = true;
+      }
+
+      function goToOp3OrAnswer() {
+        const p = state.current;
+        if (p.op3) {
+          state.stage = "op3";
+          opTitleEl.textContent = "Which operation should be done third?";
+          renderChoices(p.op3.choicesFn(state.ctx));
+          submitEl.textContent = "Check operation";
+          ansEl.disabled = true;
+        } else {
+          goToAnswerStage(`Enter the final integer answer.`);
+        }
+      }
+
+      function goToAnswerStage(message) {
+        state.stage = "ans";
+        opTitleEl.textContent = "Now compute the final answer:";
+        choicesEl.innerHTML = "";
+        ansEl.disabled = false;
+        ansEl.focus();
+        submitEl.textContent = "Check answer";
+        setFeedback(message, "good");
+      }
+
+      function applyOp1CorrectAndAdvance() {
+        const p = state.current;
+        p.op1.compute(state.ctx);
+        showSteps([p.op1.step1ExprHTML(state.ctx)]);
+        goToOp2();
+        setFeedback(`Now choose the second operation.`, "good");
+      }
+
+      function applyOp2CorrectAndAdvance() {
+        const p = state.current;
+        p.op2.compute(state.ctx);
+        showSteps([
+          p.op1.step1ExprHTML(state.ctx),
+          p.op2.step2ExprHTML(state.ctx)
+        ]);
+        goToOp3OrAnswer();
+        if (state.stage === "op3") setFeedback(`Now choose the third operation.`, "good");
+        else setFeedback(`Enter the final integer answer.`, "good");
+      }
+
+      function applyOp3CorrectAndAdvance() {
+        const p = state.current;
+        p.op3.compute(state.ctx);
+        showSteps([
+          p.op1.step1ExprHTML(state.ctx),
+          p.op2.step2ExprHTML(state.ctx),
+          p.op3.step3ExprHTML(state.ctx)
+        ]);
+        goToAnswerStage(`Enter the final integer answer.`);
+      }
+
+      function wrongOperationAndContinue(correctHTML, applyFn) {
+        state.incorrect += 1;
+        state.streak = 0;
+        updateStats();
+
+        setFeedback(`❌ Not quite. The correct choice is <b>${correctHTML}</b>.`, "bad");
+        setLocked(true);
+
+        setTimeout(() => {
+          setLocked(false);
+          applyFn(); // lock in the correct step and proceed (same problem)
+        }, 4000);
+      }
+
+      // ===== Handlers =====
+      function handleOp1() {
+        const sel = getSelectedChoiceId();
+        if (!sel) { setFeedback(`Please choose an option for the first operation.`, "bad"); return; }
+
+        const p = state.current;
+        const correctId = p.op1.correctId;
+        const correctChoice = p.op1.choices.find(c => c.id === correctId);
+
+        if (sel !== correctId) {
+          wrongOperationAndContinue(correctChoice.textHTML, applyOp1CorrectAndAdvance);
+          return;
+        }
+
+        applyOp1CorrectAndAdvance();
+        setFeedback(`✅ Correct first step. Now choose the second operation.`, "good");
+      }
+
+      function handleOp2() {
+        const sel = getSelectedChoiceId();
+        if (!sel) { setFeedback(`Please choose an option for the second operation.`, "bad"); return; }
+
+        const p = state.current;
+        const op2Choices = p.op2.choicesFn(state.ctx);
+        const correctId = p.op2.correctId;
+        const correctChoice = op2Choices.find(c => c.id === correctId);
+
+        if (sel !== correctId) {
+          wrongOperationAndContinue(correctChoice.textHTML, applyOp2CorrectAndAdvance);
+          return;
+        }
+
+        applyOp2CorrectAndAdvance();
+        if (state.stage === "op3") setFeedback(`✅ Correct second step. Now choose the third operation.`, "good");
+        else setFeedback(`✅ Correct second step. Enter the final integer answer.`, "good");
+      }
+
+      function handleOp3() {
+        const sel = getSelectedChoiceId();
+        if (!sel) { setFeedback(`Please choose an option for the third operation.`, "bad"); return; }
+
+        const p = state.current;
+        const op3Choices = p.op3.choicesFn(state.ctx);
+        const correctId = p.op3.correctId;
+        const correctChoice = op3Choices.find(c => c.id === correctId);
+
+        if (sel !== correctId) {
+          wrongOperationAndContinue(correctChoice.textHTML, applyOp3CorrectAndAdvance);
+          return;
+        }
+
+        applyOp3CorrectAndAdvance();
+        setFeedback(`✅ Correct third step. Enter the final integer answer.`, "good");
+      }
+
+      function handleAnswer() {
+        const entered = parseIntegerStrict(ansEl.value);
+        if (entered === null) {
+          setFeedback(`Please enter a whole number (integer).`, "bad");
+          ansEl.focus();
+          ansEl.select();
+          return;
+        }
+
+        const correct = state.current.answer;
+        setLocked(true);
+
+        if (entered === correct) {
+          state.correct += 1;
+          state.streak += 1;
+          updateStats();
+          setFeedback(`✅ Correct!`, "good");
+          setTimeout(() => { setLocked(false); pickNextProblem(); }, 2000);
+        } else {
+          state.incorrect += 1;
+          state.streak = 0;
+          updateStats();
+          setFeedback(`❌ Incorrect. The correct answer is <b>${correct}</b>.`, "bad");
+          setTimeout(() => { setLocked(false); pickNextProblem(); }, 4000);
+        }
+      }
+
+      function mainCheck() {
+        if (state.locked || !state.current) return;
+
+        if (state.stage === "op1") handleOp1();
+        else if (state.stage === "op2") handleOp2();
+        else if (state.stage === "op3") handleOp3();
+        else handleAnswer();
+      }
+
+      // ===== Keyboard-friendly choice selection =====
+      function tryPickChoiceByNumberKey(digitChar) {
+        if (state.locked) return false;
+        if (state.stage === "ans") return false; // don't steal number typing for the answer box
+        const n = Number(digitChar);
+        if (!(n >= 1 && n <= 9)) return false;
+
+        const radios = Array.from(choicesEl.querySelectorAll('input[name="opchoice"]'));
+        if (radios.length === 0) return false;
+        if (n > radios.length) return false;
+
+        radios[n - 1].checked = true;
+        radios[n - 1].focus({ preventScroll: true });
+        return true;
+      }
+
+      // ===== Events =====
+      submitEl.addEventListener("click", mainCheck);
+
+      document.addEventListener("keydown", (e) => {
+        if (/^[1-9]$/.test(e.key)) {
+          if (tryPickChoiceByNumberKey(e.key)) {
+            e.preventDefault();
+            return;
+          }
+        }
+
+        if (e.key === "Enter") {
+          if (state.locked) return;
+          e.preventDefault();
+          mainCheck();
+        }
+      });
+
+      pickNextProblem();
+    })();
+  </script>
+</body>
+</html>
