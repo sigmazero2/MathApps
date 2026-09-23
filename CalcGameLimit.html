@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculus I Limit Game</title>
+<style>
+  :root{
+    --bg:#f4f7fb; --card:#fff; --ink:#172033; --muted:#667085;
+    --blue:#2563eb; --blue2:#dbeafe; --green:#15803d; --greenbg:#dcfce7;
+    --red:#b91c1c; --redbg:#fee2e2; --gold:#a16207; --goldbg:#fef3c7;
+    --border:#d0d5dd;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--ink)}
+  .wrap{max-width:960px;margin:28px auto;padding:0 16px}
+  .top{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:14px}
+  h1{font-size:30px;margin:0}
+  .score{font-size:22px;font-weight:700;background:#111827;color:#fff;padding:10px 18px;border-radius:12px;white-space:nowrap}
+  .card{background:var(--card);border:1px solid #e4e7ec;border-radius:18px;padding:24px;box-shadow:0 5px 20px rgba(16,24,40,.07)}
+  .problem-type{font-size:14px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700}
+  .step-title{font-size:21px;font-weight:700;margin:10px 0 14px}
+  .math{font-family:"Cambria Math","Times New Roman",serif;font-size:26px;line-height:1.65;text-align:center;margin:18px 0}
+  .lim{display:inline-flex;align-items:center;gap:7px}
+  .limword{display:inline-flex;flex-direction:column;line-height:1;text-align:center;font-size:.9em}
+  .limword small{font-size:.48em;margin-top:3px}
+  .frac{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;line-height:1.15;margin:0 .15em}
+  .frac .num{border-bottom:1.6px solid currentColor;padding:0 .18em .08em}
+  .frac .den{padding:.08em .18em 0}
+  .sqrt{white-space:nowrap}
+  .sqrt:before{content:"√";font-size:1.08em}
+  .radicand{border-top:1.5px solid currentColor;padding:0 2px}
+  .choices{display:grid;grid-template-columns:1fr;gap:9px;margin:18px auto;max-width:680px}
+  button.choice,button.action{
+    font-size:17px;border:2px solid var(--border);background:#fff;border-radius:11px;padding:12px 15px;
+    cursor:pointer;text-align:left;color:var(--ink)
+  }
+  button.choice:hover:not(:disabled){border-color:#98a2b3;background:#f9fafb}
+  button.choice.correct{background:var(--greenbg);border-color:var(--green);color:#14532d;font-weight:700}
+  button.choice.wrong{background:var(--redbg);border-color:var(--red)}
+  button.choice:disabled{cursor:default;opacity:1}
+  .answer-row{display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;margin:18px 0}
+  input.answer{
+    font-size:20px;padding:11px 13px;border:2px solid var(--border);border-radius:10px;min-width:210px;max-width:100%;
+  }
+  input.answer.small{min-width:100px;width:130px}
+  input.answer:focus{outline:none;border-color:var(--blue)}
+  button.action{background:var(--blue);border-color:var(--blue);color:#fff;text-align:center;font-weight:700}
+  button.action:hover{filter:brightness(.96)}
+  button.action.next{background:#111827;border-color:#111827}
+  .feedback{min-height:28px;text-align:center;font-size:17px;font-weight:700;margin:10px 0}
+  .feedback.good{color:var(--green)}
+  .feedback.bad{color:var(--red)}
+  .feedback.bonus{color:var(--gold);background:var(--goldbg);padding:10px;border-radius:10px}
+  .correct-answer{font-weight:700}
+  .history{margin-top:18px;color:var(--muted);font-size:14px;text-align:center}
+  .inlineblank{display:inline-block;vertical-align:middle;margin:0 4px}
+  .inlineblank input{font-family:Arial,Helvetica,sans-serif;font-size:20px;width:85px;padding:5px 7px;border:2px solid var(--border);border-radius:7px;text-align:center}
+  @media(max-width:600px){h1{font-size:23px}.score{font-size:18px}.card{padding:17px}.math{font-size:21px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>Calculus I: Limits Game</h1>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
+      <button id="skipProblem" class="action" style="background:#667085;border-color:#667085;padding:10px 15px">Skip Problem</button>
+      <div class="score">Score: <span id="score">0</span></div>
+    </div>
+  </div>
+  <div class="card">
+    <div id="problemType" class="problem-type"></div>
+    <div id="stepTitle" class="step-title"></div>
+    <div id="content"></div>
+    <div id="feedback" class="feedback"></div>
+    <div id="nav" class="answer-row"></div>
+  </div>
+  <div class="history">+1 for each correct step • +1 bonus for a perfect problem</div>
+</div>
+
+<script>
+"use strict";
+
+let score=0, problem=null, step=1, perfect=true, locked=false;
+let formCycle=[];
+const $=id=>document.getElementById(id);
+
+function shuffledForms(){
+  const a=[1,2,3,4,5];
+  for(let i=a.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+
+function randInt(a,b){return Math.floor(Math.random()*(b-a+1))+a}
+function pick(a){return a[Math.floor(Math.random()*a.length)]}
+function nonzero(){let n; do{n=randInt(-5,5)}while(n===0); return n}
+function uniqueNonzero(k){
+  const a=[]; while(a.length<k){const n=nonzero();if(!a.includes(n))a.push(n)} return a;
+}
+function signed(n){return n>=0?`+ ${n}`:`- ${Math.abs(n)}`}
+function paren(n){return n<0?`(${n})`:`${n}`}
+function factor(n){return `(x ${signed(n)})`}
+function fmtNum(n){
+  if(Number.isInteger(n))return String(n);
+  return String(n);
+}
+function gcd(a,b){a=Math.abs(a);b=Math.abs(b);while(b){[a,b]=[b,a%b]}return a||1}
+function fracHTML(n,d){
+  return `<span class="frac"><span class="num">${n}</span><span class="den">${d}</span></span>`;
+}
+function limHTML(to,expr){return `<span class="lim"><span class="limword">lim<small>x → ${to}</small></span><span>${expr}</span></span>`}
+function sqrtHTML(x="x"){return `<span class="sqrt"><span class="radicand">${x}</span></span>`}
+function updateScore(){ $("score").textContent=score }
+function setFeedback(text,cls=""){const f=$("feedback");f.className="feedback "+cls;f.innerHTML=text}
+function clearNav(){$("nav").innerHTML=""}
+function nextButton(last=false){
+  clearNav();
+  const b=document.createElement("button");
+  b.className="action next"; b.textContent=last?"Next Problem":"Next Step";
+  b.onclick=()=>{ if(last)newProblem(); else{step++;locked=false;render()} };
+  $("nav").appendChild(b);
+}
+function correctStep(){
+  score++;updateScore();setFeedback("Correct! +1 point","good");
+}
+function wrongStep(correct){
+  perfect=false;setFeedback(`Not quite. Correct answer: <span class="correct-answer">${correct}</span>`,"bad");
+}
+function finishStep(ok,correct,last=false){
+  locked=true;
+  if(ok)correctStep(); else wrongStep(correct);
+  if(last){
+    if(perfect){
+      score++;updateScore();
+      setFeedback(`Correct! +1 point<br><span class="feedback bonus" style="display:inline-block;margin-top:10px">Perfect problem — bonus +1 point!</span>`,"good");
+    }
+    nextButton(true);
+  } else nextButton(false);
+}
+function normalize(s){
+  return String(s).toLowerCase().replace(/\s+/g,"").replace(/−/g,"-").replace(/π/g,"pi").replace(/√/g,"sqrt");
+}
+function stripStars(s){return normalize(s).replace(/\*/g,"")}
+function safeNumeric(s){
+  s=normalize(s).replace(/\^/g,"**");
+  if(!/^[0-9+\-*/().\s*]+$/.test(s)) return null;
+  try{const v=Function('"use strict";return ('+s+')')();return Number.isFinite(v)?v:null}catch{return null}
+}
+function numericEquivalent(s,target){
+  const v=safeNumeric(s); return v!==null && Math.abs(v-target)<1e-10;
+}
+function methodChoices(correctLetter){
+  const opts=[
+    ["A","Factor and cancel."],["B","Make a common denominator and cancel."],
+    ["C","Multiply by the conjugate and cancel."],["D","Just direct sub."],
+    ["E","Horizontal or vertical asymptote."]
+  ];
+  const div=document.createElement("div");div.className="choices";
+  opts.forEach(([L,t])=>{
+    const b=document.createElement("button");b.className="choice";b.dataset.letter=L;b.innerHTML=`<b>${L})</b> ${t}`;
+    b.onclick=()=>{
+      if(locked)return;locked=true;
+      [...div.children].forEach(x=>x.disabled=true);
+      const correct=[...div.children].find(x=>x.dataset.letter===correctLetter);
+      correct.classList.add("correct");
+      if(L===correctLetter){score++;updateScore();setFeedback("Correct! +1 point","good")}
+      else{b.classList.add("wrong");perfect=false;setFeedback(`The correct choice is <b>${correctLetter}</b>.`,"bad")}
+      nextButton(false);
+    };
+    div.appendChild(b);
+  });
+  $("content").appendChild(div);
+}
+function choiceSet(options,correct,displayCorrect=correct,last=false){
+  const div=document.createElement("div");div.className="choices";
+  options.forEach(o=>{
+    const b=document.createElement("button");b.className="choice";b.dataset.value=o;b.textContent=o;
+    b.onclick=()=>{
+      if(locked)return;locked=true;[...div.children].forEach(x=>x.disabled=true);
+      const c=[...div.children].find(x=>x.dataset.value===correct);c.classList.add("correct");
+      if(o===correct){score++;updateScore();setFeedback("Correct! +1 point","good")}
+      else{b.classList.add("wrong");perfect=false;setFeedback(`Correct answer: <b>${displayCorrect}</b>`,"bad")}
+      if(last){
+        if(perfect){score++;updateScore();setFeedback(`Correct! +1 point<br><span class="feedback bonus" style="display:inline-block;margin-top:10px">Perfect problem — bonus +1 point!</span>`,"good")}
+        nextButton(true);
+      } else nextButton(false);
+    };div.appendChild(b);
+  });$("content").appendChild(div);
+}
+function inputQuestion(prompt,checker,correct,last=false,placeholder="Type your answer"){
+  $("content").insertAdjacentHTML("beforeend",`<div class="answer-row"><input id="ans" class="answer" autocomplete="off" placeholder="${placeholder}"><button id="check" class="action">Check</button></div>`);
+  const go=()=>{if(locked)return;const val=$("ans").value;if(!val.trim())return;finishStep(checker(val),correct,last)};
+  $("check").onclick=go;$("ans").addEventListener("keydown",e=>{if(e.key==="Enter")go()});$("ans").focus();
+}
+function polyExpanded(a,b){
+  const c=a+b,d=a*b;
+  let s="x²";
+  if(c!==0)s+=` ${c>0?"+":"-"} ${Math.abs(c)}x`;
+  if(d!==0)s+=` ${d>0?"+":"-"} ${Math.abs(d)}`;
+  return s;
+}
+function factorPairOK(s,a,b){
+  let t=stripStars(s).replace(/\^\+?/g,"");
+  const f1=stripStars(factor(a)), f2=stripStars(factor(b));
+  return t===f1+f2 || t===f2+f1;
+}
+function form1(){
+  const [a,b,c]=uniqueNonzero(3);
+  return {type:1,a,b,c,p1:polyExpanded(a,b),p2:polyExpanded(a,c),steps:3};
+}
+function form2(){
+  // For Form 2, #1 must be a positive integer from 1 through 5.
+  const a=randInt(1,5);
+  return {type:2,a,sq:a*a,steps:4};
+}
+function form3(){
+  let a;do{a=nonzero()}while(Math.abs(a)===1);
+  let b,c;do{b=nonzero()}while(b===a);do{c=nonzero()}while(c===a||c===b);
+  return {type:3,a,b,c,steps:4};
+}
+const trigAngles=[
+  {s:"2π/3",key:"2pi/3",q:"II",ref:"π/3",sin:Math.sqrt(3)/2,cos:-.5},
+  {s:"3π/4",key:"3pi/4",q:"II",ref:"π/4",sin:Math.sqrt(2)/2,cos:-Math.sqrt(2)/2},
+  {s:"5π/6",key:"5pi/6",q:"II",ref:"π/6",sin:.5,cos:-Math.sqrt(3)/2},
+  {s:"7π/6",key:"7pi/6",q:"III",ref:"π/6",sin:-.5,cos:-Math.sqrt(3)/2},
+  {s:"5π/4",key:"5pi/4",q:"III",ref:"π/4",sin:-Math.sqrt(2)/2,cos:-Math.sqrt(2)/2},
+  {s:"4π/3",key:"4pi/3",q:"III",ref:"π/3",sin:-Math.sqrt(3)/2,cos:-.5},
+  {s:"5π/3",key:"5pi/3",q:"IV",ref:"π/3",sin:-Math.sqrt(3)/2,cos:.5},
+  {s:"7π/4",key:"7pi/4",q:"IV",ref:"π/4",sin:-Math.sqrt(2)/2,cos:Math.sqrt(2)/2},
+  {s:"11π/6",key:"11pi/6",q:"IV",ref:"π/6",sin:-.5,cos:Math.sqrt(3)/2}
+];
+function trigVal(angle,fun){
+  const s=angle.sin,c=angle.cos;
+  return {sin:s,cos:c,tan:s/c,csc:1/s,sec:1/c,cot:c/s}[fun];
+}
+function form4(){
+  const a=nonzero(), angle=pick(trigAngles), fun=pick(["sin","cos","tan","csc","sec","cot"]);
+  return {type:4,a,angle,fun,value:a*trigVal(angle,fun),steps:4};
+}
+function form5(){
+  const nums=uniqueNonzero(6), n=pick([2,3,4]),m=pick([2,3,4]),kind=pick([1,2,3]);
+  return {type:5,nums,n,m,kind,steps:2};
+}
+function newProblem(){
+  if(formCycle.length===0) formCycle=shuffledForms();
+  const formNumber=formCycle.shift();
+  const makers={1:form1,2:form2,3:form3,4:form4,5:form5};
+  problem=makers[formNumber]();
+  step=1;perfect=true;locked=false;render();
+}
+function render(){
+  $("content").innerHTML="";setFeedback("");clearNav();
+  $("problemType").textContent="";
+  $("stepTitle").textContent=`Step ${step} of ${problem.steps}`;
+  if(problem.type===1)render1();
+  if(problem.type===2)render2();
+  if(problem.type===3)render3();
+  if(problem.type===4)render4();
+  if(problem.type===5)render5();
+}
+function render1(){
+  const p=problem,a=p.a,b=p.b,c=p.c,to=-a;
+  if(step===1){
+    $("content").innerHTML=`<div class="math">${limHTML(to,fracHTML(p.p1,p.p2))}</div><div style="text-align:center">Which method should you use?</div>`;
+    methodChoices("A");
+  }else if(step===2){
+    $("content").innerHTML=`<div class="math">Polynomial 1: ${p.p1}<br>Polynomial 2: ${p.p2}</div>
+      <div style="text-align:center">Factor each polynomial.</div>
+      <div class="answer-row"><label>Polynomial 1: <input id="f1" class="answer" placeholder="(x + ...)(x + ...)"></label>
+      <label>Polynomial 2: <input id="f2" class="answer" placeholder="(x + ...)(x + ...)"></label>
+      <button id="check" class="action">Check</button></div>`;
+    $("check").onclick=()=>{
+      if(locked)return;
+      const ok=factorPairOK($("f1").value,a,b)&&factorPairOK($("f2").value,a,c);
+      finishStep(ok,`${factor(a)}${factor(b)} and ${factor(a)}${factor(c)}`);
+    };
+  }else{
+    const num=-a+b,den=-a+c,target=num/den,g=gcd(num,den);
+    let rn=num/g,rd=den/g;if(rd<0){rn=-rn;rd=-rd}
+    const reduced=rd===1?`${rn}`:`${rn}/${rd}`;
+    $("content").innerHTML=`<div class="math">
+      ${limHTML(to,fracHTML(p.p1,p.p2))}
+      = ${limHTML(to,fracHTML(`${factor(a)}${factor(b)}`,`${factor(a)}${factor(c)}`))}
+      = ${limHTML(to,fracHTML(`x ${signed(b)}`,`x ${signed(c)}`))}
+      = <span style="display:inline-block;min-width:70px;border-bottom:2px solid currentColor">&nbsp;</span>
+      </div><div style="text-align:center">Calculate the limit.</div>`;
+    inputQuestion("",s=>{
+      const t=stripStars(s);
+      const literal=stripStars(`(${-a}${b>=0?"+":""}${b})/(${-a}${c>=0?"+":""}${c})`);
+      const computed=`${num}/${den}`;
+      return t===literal || t===normalize(computed) || t===normalize(reduced) || numericEquivalent(t,target);
+    },reduced,true);
+  }
+}
+function render2(){
+  const p=problem,a=p.a,sq=p.sq,to=sq;
+  const expr1=`x - ${sq}`;
+  const expr2=`${sqrtHTML()} - ${paren(a)}`;
+  // "sqrt(x) + #1" is displayed literally; if #1 is negative, this becomes + (-k).
+  const conjMath=`${sqrtHTML()} + ${paren(a)}`;
+  const conjText=`sqrt(x)+${paren(a)}`;
+
+  if(step===1){
+    $("content").innerHTML=`<div class="math">${limHTML(to,fracHTML(expr1,expr2))}</div>
+      <div style="text-align:center">Which method should you use?</div>`;
+    methodChoices("C");
+
+  }else if(step===2){
+    $("content").innerHTML=`<div class="math">What is the conjugate of ${expr2}?</div>`;
+    inputQuestion("",s=>{
+      const t=stripStars(s);
+      const accepted=[
+        stripStars(conjText),
+        stripStars(`sqrt(x)+(${a})`),
+        stripStars(`sqrt(x)+${a}`)
+      ];
+      return accepted.includes(t);
+    },`√x + ${paren(a)}`);
+
+  }else if(step===3){
+    $("content").innerHTML=`<div class="math">
+      ${limHTML(to,fracHTML(expr1,expr2))}
+      = ${limHTML(to,fracHTML(`(${expr1}) · (${conjMath})`,`(${expr2}) · (${conjMath})`))}
+      </div>
+      <div style="text-align:center">What does the denominator product expand to?</div>`;
+
+    inputQuestion("",s=>{
+      const t=stripStars(s).replace(/²/g,"^2");
+      const accepted=[
+        stripStars(`x-${sq}`),
+        stripStars(`x-(${a})^2`),
+        stripStars(`x-${paren(a)}^2`)
+      ].map(v=>v.replace(/²/g,"^2"));
+      return accepted.includes(t);
+    },`x - ${sq}`);
+
+  }else{
+    $("content").innerHTML=`<div class="math">
+      ${limHTML(to,fracHTML(`(${expr1}) · (${conjMath})`,`(${expr2}) · (${conjMath})`))}
+      = ${limHTML(to,fracHTML(`(${expr1}) · (${conjMath})`,expr1))}
+      </div>
+      <div style="text-align:center">Calculate the limit.</div>`;
+
+    inputQuestion("",s=>{
+      const t=stripStars(s);
+      const target=2*a;
+      const accepted=[
+        stripStars(`2*${a}`),
+        stripStars(`2*${paren(a)}`),
+        stripStars(`2${paren(a)}`),
+        stripStars(`2(${a})`)
+      ];
+      return numericEquivalent(t,target) || accepted.includes(t);
+    },`${2*a}`,true);
+  }
+}
+function render3(){
+  const a=problem.a;
+  const e1=`${fracHTML("1","x")} - ${fracHTML("1",paren(a))}`, e2=`x ${a>=0?"-":"+"} ${Math.abs(a)}`;
+  if(step===1){
+    $("content").innerHTML=`<div class="math">${limHTML(a,fracHTML(e1,e2))}</div><div style="text-align:center">Which method should you use?</div>`;
+    methodChoices("B");
+  }else if(step===2){
+    $("content").innerHTML=`<div class="math">What is the common denominator of ${fracHTML("1","x")} and ${fracHTML("1",paren(a))}?</div>`;
+    inputQuestion("",s=>{
+      let t=stripStars(s).replace(/[()]/g,"");
+      return t===`${a}x`||t===`x${a}`;
+    },`${a}x`);
+  }else if(step===3){
+    $("content").innerHTML=`<div class="math">${limHTML(a,fracHTML(e1,e2))} =
+    ${limHTML(a,fracHTML(`${fracHTML(`<span class="inlineblank"><input id="b1"></span>`,`${a}x`)} - ${fracHTML(`<span class="inlineblank"><input id="b2"></span>`,`${a}x`)}`,e2))}</div>
+    <div class="answer-row"><button id="check" class="action">Check</button></div>`;
+    $("check").onclick=()=>{if(locked)return;finishStep(normalize($("b1").value)===String(a)&&normalize($("b2").value)==="x",`${a} and x`)};
+  }else{
+    const target=-1/(a*a);
+    $("content").innerHTML=`<div class="math">
+    ${limHTML(a,fracHTML(`${fracHTML(a,`${a}x`)} - ${fracHTML("x",`${a}x`)}`,e2))}
+    = ${limHTML(a,`${fracHTML(`${a} - x`,`${a}x`)} · ${fracHTML("1",`x ${a>=0?"-":"+"} ${Math.abs(a)}`)}`)}
+    = ${limHTML(a,fracHTML(`<span class="inlineblank"><input id="b1"></span>`,`${a}x`))}
+    = <span class="inlineblank"><input id="b2" style="width:130px"></span></div>
+    <div class="answer-row"><button id="check" class="action">Check</button></div>`;
+    $("check").onclick=()=>{
+      if(locked)return;
+      const v1=normalize($("b1").value),v2=stripStars($("b2").value);
+      const symbolic=[
+        `-1/(${a})^2`,
+        `-1/${a}^2`,
+        `-1/(${a*a})`,
+        `-1/(${a}*${a})`,
+        `-1/${a}*${a}`
+      ].map(stripStars);
+      finishStep(v1==="-1"&&(symbolic.includes(v2)||numericEquivalent(v2,target)),`-1 and -1/(${a})²`,true);
+    };
+  }
+}
+function render4(){
+  const p=problem, expr=`${p.a===1?"":p.a===-1?"-":p.a}${p.fun}(x)`;
+  if(step===1){
+    $("content").innerHTML=`<div class="math">${limHTML(p.angle.s,expr)}</div><div style="text-align:center">Which method should you use?</div>`;
+    methodChoices("D");
+  }else if(step===2){
+    $("content").innerHTML=`<div class="math">The angle is ${p.angle.s}. What quadrant is it in?</div>`;
+    choiceSet(["I","II","III","IV"],p.angle.q);
+  }else if(step===3){
+    $("content").innerHTML=`<div class="math">What is the reference angle for ${p.angle.s}?</div>`;
+    choiceSet(["π/6","π/4","π/3"],p.angle.ref);
+  }else{
+    $("content").innerHTML=`<div class="math">${limHTML(p.angle.s,`${p.a===1?"":p.a===-1?"-":p.a}${p.fun}(${p.angle.s})`)}</div>
+    <div style="text-align:center">Compute the limit. Do not leave a trigonometric function in your answer.<br><small>You may use <b>sqrt(...)</b> for radicals.</small></div>`;
+    inputQuestion("",s=>{
+      const t=normalize(s);
+      if(/sin|cos|tan|csc|sec|cot/.test(t))return false;
+      let e=t.replace(/sqrt\(([^)]+)\)/g,"Math.sqrt($1)").replace(/\^/g,"**");
+      if(!/^[0-9+\-*/().a-zA-Z]*$/.test(e)||(/[a-zA-Z]/.test(e.replace(/Math\.sqrt/g,""))))return false;
+      try{const v=Function('"use strict";return ('+e+')')();return Number.isFinite(v)&&Math.abs(v-p.value)<1e-8}catch{return false}
+    },trigExactAnswer(p),true);
+  }
+}
+function trigExactAnswer(p){
+  // Create a clean conventional exact answer for feedback.
+  const a=p.a, ang=p.angle, f=p.fun;
+  let kind,coef;
+  const absSin=Math.abs(ang.sin),absCos=Math.abs(ang.cos);
+  function identify(v){
+    if(Math.abs(v-.5)<1e-8)return ["rat",1,2];
+    if(Math.abs(v-Math.sqrt(2)/2)<1e-8)return ["sqrt",1,2,2];
+    if(Math.abs(v-Math.sqrt(3)/2)<1e-8)return ["sqrt",1,3,2];
+    if(Math.abs(v-1/Math.sqrt(3))<1e-8)return ["sqrt",1,3,3]; // sqrt3/3
+    if(Math.abs(v-Math.sqrt(3))<1e-8)return ["sqrt",1,3,1];
+    if(Math.abs(v-1)<1e-8)return ["rat",1,1];
+    if(Math.abs(v-2)<1e-8)return ["rat",2,1];
+    if(Math.abs(v-Math.sqrt(2))<1e-8)return ["sqrt",1,2,1];
+    if(Math.abs(v-2/Math.sqrt(3))<1e-8)return ["sqrt",2,3,3]; // 2sqrt3/3
+    return null;
+  }
+  const sign=p.value<0?-1:1, mag=Math.abs(trigVal(ang,f)), z=identify(mag);
+  if(!z)return String(p.value);
+  if(z[0]==="rat"){
+    let n=sign*a<0?Math.abs(a)*z[1]:Math.abs(a)*z[1], d=z[2], sg=Math.sign(p.value);
+    const g=gcd(n,d);n/=g;d/=g;
+    return (sg<0?"-":"")+(d===1?n:`${n}/${d}`);
+  }
+  let mult=Math.abs(a)*z[1],rad=z[2],den=z[3],sg=Math.sign(p.value);
+  const g=gcd(mult,den);mult/=g;den/=g;
+  const root=(mult===1?"":mult)+"√"+rad;
+  return (sg<0?"-":"")+(den===1?root:`${root}/${den}`);
+}
+function polyTerm(c,pow){
+  if(c===0)return "";
+  const abs=Math.abs(c),sg=c<0?"-":"+";
+  const coeff=abs===1&&pow>0?"":abs;
+  const x=pow===0?"":pow===1?"x":`x<sup>${pow}</sup>`;
+  return {sg,text:`${coeff}${x}`};
+}
+function polyDisplay(terms){
+  let out="";
+  terms.forEach(([c,p])=>{
+    const t=polyTerm(c,p);if(!t)return;
+    if(!out)out+=(t.sg==="-"?"-":"")+t.text;else out+=` ${t.sg} ${t.text}`;
+  });return out||"0";
+}
+function form5LimitHTML(p){
+  const [a,b,c,d,e,f]=p.nums;
+  if(p.kind===1){
+    const num=polyDisplay([[a,p.n],[b,1],[c,0]]);
+    const den=polyDisplay([[d,p.m],[e,1],[f,0]]);
+    return limHTML("∞",fracHTML(num,den));
+  }
+  const side=p.kind===2?"+":"−";
+  return limHTML(`${a}<sup>${side}</sup>`,fracHTML("1",`x ${a>=0?"-":"+"} ${Math.abs(a)}`));
+}
+function render5(){
+  const p=problem,[a,b,c,d,e,f]=p.nums;
+  if(step===1){
+    $("content").innerHTML=`<div class="math">${form5LimitHTML(p)}</div><div style="text-align:center">Which method should you use?</div>`;
+    methodChoices("E");
+  }else{
+    let checker,correct;
+    if(p.kind===1){
+      if(p.n>p.m){checker=s=>["infinity","∞","oo","+infinity","+∞","+oo"].includes(normalize(s));correct="∞";}
+      else if(p.n<p.m){checker=s=>numericEquivalent(s,0);correct="0";}
+      else{
+        const target=a/d;checker=s=>numericEquivalent(s,target)||stripStars(s)===stripStars(`${a}/${d}`);
+        const g=gcd(a,d);let rn=a/g,rd=d/g;if(rd<0){rn=-rn;rd=-rd}correct=rd===1?String(rn):`${rn}/${rd}`;
+      }
+    }else if(p.kind===2){
+      checker=s=>["infinity","∞","oo","+infinity","+∞","+oo"].includes(normalize(s));correct="∞";
+    }else{
+      checker=s=>["-infinity","-∞","-oo"].includes(normalize(s));correct="−∞";
+    }
+    $("content").innerHTML=`<div class="math">${form5LimitHTML(p)} = ?</div>`;
+    inputQuestion("",checker,correct,true);
+  }
+}
+$("skipProblem").onclick=()=>newProblem();
+newProblem();
+</script>
+</body>
+</html>
