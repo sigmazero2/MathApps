@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Kinematics Explorer</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;overflow:hidden;color:#202124}.tabs{height:54px;display:flex;border-bottom:1px solid #ccc}.tab{flex:1;border:0;border-right:1px solid #ccc;font-size:16px;font-weight:bold;background:#eee;cursor:pointer}.tab.active{background:#fff;box-shadow:inset 0 -4px #1769aa}.mode{display:none;height:calc(100vh - 54px);position:relative}.mode.active{display:block}.controls{height:50%;min-height:250px;padding:22px 32px;display:flex;gap:25px;align-items:flex-start}.left{display:flex;flex-direction:column;gap:10px}.buttons{display:flex;gap:8px}.btn{padding:10px 15px;min-width:105px;font-size:17px;font-weight:bold;background:white;border:2px solid #333;border-radius:8px;cursor:pointer}.btn.running{background:#e8f4ea}.btn.paused{background:#fff3cd}.instructions{font-size:15px;line-height:1.5}.readout{background:#f6f7f9;border:1px solid #ccc;border-radius:10px;padding:14px 20px;font-size:20px;line-height:1.65;min-width:310px}.readout strong{display:inline-block;min-width:140px}.scorebox{min-width:220px}.scorebox strong{min-width:105px}.bonus{font-weight:bold;color:#7a5200}.graphWrap{position:absolute;left:0;right:0;bottom:0;height:50%;border-top:2px solid #444}.graphWrap canvas{width:100%;height:100%;display:block}
+</style></head><body>
+<div class="tabs"><button class="tab active" data-mode="freeRoam">Free-roam</button><button class="tab" data-mode="positionMode">Reach the position in time</button><button class="tab" data-mode="velocityMode">Reach the velocity in time</button></div>
+
+<section id="freeRoam" class="mode active"><div class="controls"><div class="left"><div class="buttons"><button class="btn play">Play</button><button class="btn pause">Pause</button><button class="btn reset">Reset</button></div><div class="instructions"><b>↑:</b> velocity +0.2 &nbsp; <b>↓:</b> velocity −0.2<br><b>Space:</b> pause / resume<br><br>Refresh: <b>0.1 real-time seconds</b><br>Simulation step: <b>h = 0.1</b></div></div><div class="readout"><div><strong>Position:</strong><span class="pos">0.00</span></div><div><strong>Velocity:</strong><span class="vel">0.00</span></div><div><strong>Acceleration:</strong><span class="acc">0.00</span></div></div></div><div class="graphWrap"><canvas></canvas></div></section>
+
+<section id="positionMode" class="mode"><div class="controls"><div class="left"><div class="buttons"><button class="btn play">Play</button><button class="btn pause">Pause</button><button class="btn reset">Reset</button></div><div class="instructions"><b>↑:</b> velocity +0.2 &nbsp; <b>↓:</b> velocity −0.2<br><b>Space:</b> pause / resume<br><br>Guide the particle through each position gate.<br>Gates begin only after <b>x = 20</b>.</div></div><div class="readout"><div><strong>Position:</strong><span class="pos">0.00</span></div><div><strong>Velocity:</strong><span class="vel">0.00</span></div><div><strong>Acceleration:</strong><span class="acc">0.00</span></div></div><div class="readout scorebox"><div><strong>Score:</strong><span class="score">0</span></div><div><strong>Streak:</strong><span class="streak">0</span></div><div><strong>Difficulty:</strong><span>1</span></div><div class="bonus"></div></div></div><div class="graphWrap"><canvas></canvas></div></section>
+
+<section id="velocityMode" class="mode"><div class="controls"><div class="left"><div class="buttons"><button class="btn play">Play</button><button class="btn pause">Pause</button><button class="btn reset">Reset</button></div><div class="instructions"><b>↑:</b> velocity +0.2 &nbsp; <b>↓:</b> velocity −0.2<br><b>Space:</b> pause / resume<br><br>Match your velocity to the slope of the gray target line<br>when the particle reaches its center.</div></div><div class="readout"><div><strong>Position:</strong><span class="pos">0.00</span></div><div><strong>Velocity:</strong><span class="vel">0.00</span></div><div><strong>Acceleration:</strong><span class="acc">0.00</span></div></div><div class="readout scorebox"><div><strong>Score:</strong><span class="score">0</span></div><div><strong>Streak:</strong><span class="streak">0</span></div><div><strong>Difficulty:</strong><span>1</span></div><div class="bonus"></div></div></div><div class="graphWrap"><canvas></canvas></div></section>
+
+<script>
+(()=>{
+const H=.1,MS=100,DV=.2,YMIN=-10,YMAX=10,L0=-1,R0=20,PAN=10,W=21;
+function make(id,type){
+ const sec=document.getElementById(id),can=sec.querySelector("canvas"),ctx=can.getContext("2d"),wrap=sec.querySelector(".graphWrap");
+ const play=sec.querySelector(".play"),pause=sec.querySelector(".pause"),reset=sec.querySelector(".reset"),pos=sec.querySelector(".pos"),vel=sec.querySelector(".vel"),acc=sec.querySelector(".acc");
+ const scoreEl=sec.querySelector(".score"),streakEl=sec.querySelector(".streak"),bonus=sec.querySelector(".bonus");
+ let x=0,y=0,v=0,a=0,oldv=0,running=false,paused=false,timer=null,path=[{x:0,y:0}],score=0,streak=0,targets=[],nextX=null;
+ const fmt=n=>(Math.abs(n)<1e-9?0:n).toFixed(2);
+ function view(){if(x<=PAN)return{left:L0,right:R0};let d=x-PAN;return{left:L0+d,right:R0+d}}
+ function update(){pos.textContent=fmt(y);vel.textContent=fmt(v);acc.textContent=fmt(a);if(type!=="free"){scoreEl.textContent=score;streakEl.textContent=streak;bonus.textContent=streak>=5?"Bonus active: +2 per cleared target!":""}}
+ function spacing(){let A=type==="position"?[6,7,8]:[10,12,14];return A[Math.floor(Math.random()*A.length)]}
+ function gateY(){return Math.round((YMIN+Math.random()*(YMAX-YMIN))*10)/10}
+ function randomVel(){return Math.round((-2+Math.floor(Math.random()*11)*.4)*10)/10}
+ function initTargets(){if(type==="free")return;targets=[];nextX=20+spacing();ensure(60)}
+ function ensure(right){if(type==="free")return;while(nextX<=right+20){targets.push(type==="position"?{x:nextX,y:gateY(),checked:false}:{x:nextX,targetV:randomVel(),checked:false});nextX+=spacing()}}
+ function xy(X,Y,V,w,h){return{x:(X-V.left)/(V.right-V.left)*w,y:h-(Y-YMIN)/(YMAX-YMIN)*h}}
+ function resize(){let d=devicePixelRatio||1,r=wrap.getBoundingClientRect();can.width=Math.round(r.width*d);can.height=Math.round(r.height*d);can.style.width=r.width+"px";can.style.height=r.height+"px";ctx.setTransform(d,0,0,d,0,0);draw()}
+ function fixedYAxis(w,h,ys){
+   // Visually anchor the y-axis at its original screen location: x=0 when view=[-1,20].
+   const axisX=(0-L0)/W*w;
+   ctx.strokeStyle="#111";ctx.fillStyle="#111";ctx.lineWidth=2;
+   ctx.beginPath();ctx.moveTo(axisX,0);ctx.lineTo(axisX,h);ctx.stroke();
+   ctx.font="12px Arial";ctx.textAlign="right";ctx.textBaseline="middle";
+   for(let Y=YMIN;Y<=YMAX;Y++){let py=h-(Y-YMIN)*ys;ctx.beginPath();ctx.moveTo(axisX-5,py);ctx.lineTo(axisX+5,py);ctx.stroke();ctx.fillText(String(Y),axisX-8,py)}
+ }
+ function draw(){
+  let r=can.getBoundingClientRect(),w=r.width,h=r.height;if(!w||!h)return;let V=view();ensure(V.right);ctx.clearRect(0,0,w,h);ctx.save();ctx.beginPath();ctx.rect(0,0,w,h);ctx.clip();
+  let xs=w/W,ys=h/(YMAX-YMIN),y0=xy(0,0,V,w,h).y;
+  ctx.strokeStyle="#d8d8d8";ctx.lineWidth=1;
+  for(let Y=YMIN;Y<=YMAX;Y++){let py=h-(Y-YMIN)*ys;ctx.beginPath();ctx.moveTo(0,py);ctx.lineTo(w,py);ctx.stroke()}
+  for(let X=Math.ceil(V.left);X<=Math.floor(V.right);X++){let px=(X-V.left)*xs;ctx.beginPath();ctx.moveTo(px,0);ctx.lineTo(px,h);ctx.stroke()}
+  // x-axis pans with world; ticks remain unlabeled.
+  ctx.strokeStyle="#111";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,y0);ctx.lineTo(w,y0);ctx.stroke();
+  for(let X=Math.ceil(V.left);X<=Math.floor(V.right);X++){let px=(X-V.left)*xs;ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(px,y0-5);ctx.lineTo(px,y0+5);ctx.stroke()}
+  // Challenge graphics pan with the world.
+  if(type==="position")for(const g of targets)if(g.x>=V.left-1&&g.x<=V.right+1){let c=xy(g.x,g.y,V,w,h),t=xy(g.x,g.y+1,V,w,h),b=xy(g.x,g.y-1,V,w,h);ctx.strokeStyle="#999";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(c.x,t.y);ctx.lineTo(c.x,b.y);ctx.stroke();ctx.strokeStyle="#111";ctx.lineWidth=5;let q=Math.max(8,.28*xs);ctx.beginPath();ctx.moveTo(c.x-q,t.y);ctx.lineTo(c.x+q,t.y);ctx.moveTo(c.x-q,b.y);ctx.lineTo(c.x+q,b.y);ctx.stroke()}
+  if(type==="velocity")for(const g of targets)if(g.x+3>=V.left&&g.x-3<=V.right){
+    const x1=g.x-3,x2=g.x+3;
+
+    // Before x = 200, provide a family of parallel guide lines,
+    // one through every integer y-value at x = GateX.
+    if(x<200){
+      ctx.strokeStyle="#c7c7c7";ctx.lineWidth=1.5;
+      for(let intercept=YMIN;intercept<=YMAX;intercept++){
+        if(intercept===0)continue;
+        let y1=intercept+g.targetV*(x1-g.x);
+        let y2=intercept+g.targetV*(x2-g.x);
+        let p1=xy(x1,y1,V,w,h),p2=xy(x2,y2,V,w,h);
+        ctx.beginPath();ctx.moveTo(p1.x,p1.y);ctx.lineTo(p2.x,p2.y);ctx.stroke();
+      }
+    }
+
+    // Main target line through (GateX, 0).
+    let y1=g.targetV*(x1-g.x),y2=g.targetV*(x2-g.x);
+    let p1=xy(x1,y1,V,w,h),p2=xy(x2,y2,V,w,h);
+    ctx.strokeStyle="#888";ctx.lineWidth=4;
+    ctx.beginPath();ctx.moveTo(p1.x,p1.y);ctx.lineTo(p2.x,p2.y);ctx.stroke();
+
+    // Solid gray scoring checkpoint at the right endpoint, x = GateX + 3.
+    let checkPoint=xy(g.x+3,0,V,w,h);
+    ctx.strokeStyle="#777";ctx.lineWidth=2.5;
+    ctx.beginPath();ctx.moveTo(checkPoint.x,0);ctx.lineTo(checkPoint.x,h);ctx.stroke();
+
+    // Before x = 100, show the required velocity above the gate.
+    if(x<100){
+      let top=xy(g.x,YMAX,V,w,h);
+      ctx.fillStyle="#444";ctx.font="bold 16px Arial";
+      ctx.textAlign="center";ctx.textBaseline="top";
+      ctx.fillText((Math.abs(g.targetV)<1e-9?0:g.targetV).toFixed(1),top.x,5);
+    }
+  }
+  if(path.length>1){ctx.strokeStyle="#d71920";ctx.lineWidth=3;ctx.lineJoin="round";ctx.lineCap="round";ctx.beginPath();let first=true;for(const p of path){let q=xy(p.x,p.y,V,w,h);if(first){ctx.moveTo(q.x,q.y);first=false}else ctx.lineTo(q.x,q.y)}ctx.stroke()}
+  let c=xy(x,y,V,w,h);ctx.fillStyle="#111";ctx.beginPath();ctx.arc(c.x,c.y,Math.max(.25*Math.min(xs,ys),4),0,Math.PI*2);ctx.fill();
+  // Draw fixed visual y-axis last so it remains visible above panning content.
+  fixedYAxis(w,h,ys);
+  ctx.restore()
+ }
+ function check(ox,nx){
+  if(type==="free")return;
+  for(const g of targets){
+    const checkX = type==="velocity" ? g.x+3 : g.x;
+    if(!g.checked && ox<checkX && nx>=checkX-1e-9){
+      g.checked=true;
+      let hit;
+      if(type==="position"){
+        hit=y>=g.y-1-1e-9 && y<=g.y+1+1e-9;
+      }else{
+        // Early stage: exact match. From x >= 100 onward, allow ±0.2.
+        hit = checkX>=100
+          ? (v>=g.targetV-.2-1e-9 && v<=g.targetV+.2+1e-9)
+          : (Math.abs(v-g.targetV)<1e-9);
+      }
+      if(hit){score+=streak>=5?2:1;streak++}
+      else{score--;streak=0}
+    }
+  }
+}
+ function tick(){a=(v-oldv)/H;let ox=x;x+=H;y+=v*H;path.push({x,y});check(ox,x);oldv=v;update();draw()}
+ function start(){if(running&&!paused)return;if(!running){running=true;oldv=v}paused=false;if(timer)clearInterval(timer);timer=setInterval(tick,MS);play.textContent="Playing";play.classList.add("running");pause.textContent="Pause";pause.classList.remove("paused")}
+ function doPause(){if(!running)return;if(paused){start();return}paused=true;clearInterval(timer);timer=null;play.textContent="Play";play.classList.remove("running");pause.textContent="Resume";pause.classList.add("paused")}
+ function toggle(){if(!running)start();else doPause()}
+ function doReset(){if(timer)clearInterval(timer);timer=null;running=false;paused=false;x=0;y=0;v=0;a=0;oldv=0;path=[{x:0,y:0}];score=0;streak=0;initTargets();play.textContent="Play";play.classList.remove("running");pause.textContent="Pause";pause.classList.remove("paused");update();draw()}
+ function change(d){v=Math.round((v+d)*10)/10;update()}
+ play.addEventListener("click",start);pause.addEventListener("click",doPause);reset.addEventListener("click",doReset);initTargets();update();
+ return{resize,toggle,change};
+}
+const free=make("freeRoam","free"),position=make("positionMode","position"),velocity=make("velocityMode","velocity"),sims={freeRoam:free,positionMode:position,velocityMode:velocity};
+function active(){let e=document.querySelector(".mode.active");return e?sims[e.id]:null}
+window.addEventListener("keydown",e=>{let s=active();if(!s)return;if(e.code==="Space"){e.preventDefault();s.toggle()}else if(e.key==="ArrowUp"){e.preventDefault();s.change(DV)}else if(e.key==="ArrowDown"){e.preventDefault();s.change(-DV)}});
+document.querySelectorAll(".tab").forEach(t=>t.addEventListener("click",()=>{document.querySelectorAll(".tab").forEach(q=>q.classList.remove("active"));document.querySelectorAll(".mode").forEach(q=>q.classList.remove("active"));t.classList.add("active");document.getElementById(t.dataset.mode).classList.add("active");requestAnimationFrame(sims[t.dataset.mode].resize)}));
+window.addEventListener("resize",()=>Object.values(sims).forEach(s=>s.resize()));requestAnimationFrame(()=>Object.values(sims).forEach(s=>s.resize()));
+})();
+</script></body></html>
