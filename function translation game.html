@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Function Translation Game</title>
+<style>
+  :root{
+    --bg:#f4f6fb; --card:#fff; --ink:#182033; --muted:#657089;
+    --line:#d9dfeb; --accent:#3457d5; --accent2:#e9edff;
+    --good:#dff6e7; --bad:#fde3e3;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--ink)}
+  .wrap{max-width:1000px;margin:28px auto;padding:0 18px}
+  h1{text-align:center;margin:0 0 18px}
+  .tabs{display:flex;gap:8px;margin-bottom:16px}
+  .tab{flex:1;padding:13px;border:1px solid var(--line);background:#fff;border-radius:10px 10px 0 0;
+       font-weight:700;font-size:16px;cursor:pointer}
+  .tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .tab:disabled{cursor:not-allowed;opacity:.55}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px;
+        box-shadow:0 4px 18px rgba(20,30,60,.06)}
+  .topbar{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:20px}
+  .score{font-weight:700;background:var(--accent2);padding:10px 14px;border-radius:10px}
+  .function{text-align:center;font-size:28px;margin:18px 0 8px}
+  .given{text-align:center;font-size:20px;margin:16px 0 4px;font-weight:600}
+  .question-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 28px;margin-top:8px}
+  .row{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:9px 0;border-bottom:1px solid #edf0f5}
+  .question-grid .row{align-content:flex-start}
+  .row:last-of-type{border-bottom:0}
+  label.question{width:100%;font-weight:600;margin-bottom:2px}
+  .point-row label.question{width:auto;min-width:305px;margin-bottom:0}
+  select,input{font:inherit;border:1px solid #bfc7d7;border-radius:7px;padding:7px 9px;background:white}
+  select{min-width:82px}
+  input[type=number]{width:82px}
+  input[data-field="hFactor"],input[data-field="vFactor"],input[data-field="newX"],input[data-field="newY"]{width:82px}
+  .tiny-input{width:3.5em!important}
+  .semi{font-weight:bold;color:var(--muted)}
+  .dependent{display:none}
+  .dependent.show{display:flex}
+  .actions{display:flex;justify-content:center;gap:12px;margin-top:24px}
+  button.action{border:0;border-radius:9px;padding:11px 20px;font-size:16px;font-weight:700;cursor:pointer}
+  #submit{background:var(--accent);color:white}
+  #skip{background:#7a8499;color:white}
+  #next{background:#263147;color:white;display:none}
+  .feedback{margin-top:18px;text-align:center;font-weight:700;min-height:24px}
+  .answer-correction{width:100%;margin-top:5px;color:#8b0000;font-weight:700;font-size:14px}
+  #next{margin-top:2px}
+  .correct{background:var(--good)!important}
+  .incorrect{background:var(--bad)!important}
+  .note{color:var(--muted);font-size:14px;text-align:center}
+  .paren{font-size:22px}
+  @media(max-width:760px){
+    .question-grid{grid-template-columns:1fr}
+    .row{align-items:flex-start}
+    label.question,.point-row label.question{min-width:100%;width:100%}
+    .function{font-size:23px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Function Translation Game</h1>
+  <div class="tabs">
+    <button class="tab active" data-mode="easy">Easy Mode</button>
+    <button class="tab" data-mode="medium">Medium Mode</button>
+    <button class="tab" data-mode="expert">Expert Mode</button>
+  </div>
+
+  <div class="card">
+    <div class="topbar">
+      <div><strong>Easy Mode</strong></div>
+      <div class="score">Score: <span id="score">0</span></div>
+    </div>
+
+    <div class="note">Given <strong>y = f(x)</strong>, analyze the transformation below.</div>
+    <div class="function" id="function"></div>
+    <div class="question-grid">
+    <div class="row">
+      <label class="question">Is there horizontal shifting?</label>
+      <select id="hShift" data-field="hShift">
+        <option value="">—</option><option value="yes">Yes</option><option value="no">No</option>
+      </select>
+      <span class="dependent hshiftDep semi">;</span>
+      <span class="dependent hshiftDep">by</span>
+      <input class="dependent hshiftDep tiny-input" id="hUnits" data-field="hUnits" type="text" inputmode="decimal">
+      <span class="dependent hshiftDep">units to the</span>
+      <select class="dependent hshiftDep" id="hDir" data-field="hDir">
+        <option value="">—</option><option value="left">left</option><option value="right">right</option>
+      </select>
+    </div>
+
+    <div class="row">
+      <label class="question">Is there reflection over the y-axis?</label>
+      <select id="refY" data-field="refY">
+        <option value="">—</option><option value="yes">Yes</option><option value="no">No</option>
+      </select>
+    </div>
+
+    <div class="row">
+      <label class="question">Is there horizontal shrinking/stretching?</label>
+      <select id="hScale" data-field="hScale">
+        <option value="">—</option><option value="none">Neither</option>
+        <option value="shrinking">Shrinking</option><option value="stretching">Stretching</option>
+      </select>
+      <span class="dependent hscaleDep semi">;</span>
+      <span class="dependent hscaleDep">by a factor of</span>
+      <input class="dependent hscaleDep" id="hFactor" data-field="hFactor" type="text" inputmode="decimal">
+    </div>
+
+    <div class="row">
+      <label class="question">Is there reflection over the x-axis?</label>
+      <select id="refX" data-field="refX">
+        <option value="">—</option><option value="yes">Yes</option><option value="no">No</option>
+      </select>
+    </div>
+
+    <div class="row">
+      <label class="question">Is there vertical shrinking/stretching?</label>
+      <select id="vScale" data-field="vScale">
+        <option value="">—</option><option value="none">Neither</option>
+        <option value="shrinking">Shrinking</option><option value="stretching">Stretching</option>
+      </select>
+      <span class="dependent vscaleDep semi">;</span>
+      <span class="dependent vscaleDep">by a factor of</span>
+      <input class="dependent vscaleDep" id="vFactor" data-field="vFactor" type="text" inputmode="decimal">
+    </div>
+
+    <div class="row">
+      <label class="question">Is there vertical shifting?</label>
+      <select id="vShift" data-field="vShift">
+        <option value="">—</option><option value="yes">Yes</option><option value="no">No</option>
+      </select>
+      <span class="dependent vshiftDep semi">;</span>
+      <span class="dependent vshiftDep">by</span>
+      <input class="dependent vshiftDep tiny-input" id="vUnits" data-field="vUnits" type="text" inputmode="decimal">
+      <span class="dependent vshiftDep">units</span>
+      <select class="dependent vshiftDep" id="vDir" data-field="vDir">
+        <option value="">—</option><option value="up">up</option><option value="down">down</option>
+      </select>
+    </div>
+
+    </div>
+
+    <div class="given" id="givenPoint"></div>
+    <div class="row point-row">
+      <label class="question">Where does the given point move?</label>
+      <span class="paren">(</span>
+      <input id="newX" data-field="newX" type="text" inputmode="decimal">
+      <span>,</span>
+      <input id="newY" data-field="newY" type="text" inputmode="decimal">
+      <span class="paren">)</span>
+    </div>
+
+    <div class="actions">
+      <button class="action" id="submit">Submit</button>
+      <button class="action" id="skip">Skip</button>
+      <button class="action" id="next">Next</button>
+    </div>
+    <div class="feedback" id="feedback"></div>
+  </div>
+</div>
+
+<script>
+let score = 0, problem = null, submitted = false;
+let mode = "easy";
+const recentSets = {easy:[], medium:[], expert:[]};
+
+const $ = id => document.getElementById(id);
+const randInt = (lo,hi) => Math.floor(Math.random()*(hi-lo+1))+lo;
+function nonzero(lo=-5,hi=5){ let n; do n=randInt(lo,hi); while(n===0); return n; }
+function cleanNum(n){ return Object.is(n,-0) ? 0 : n; }
+
+function innerShift(b){
+  if(b===0) return "x";
+  return b>0 ? `x − ${b}` : `x + ${Math.abs(b)}`;
+}
+function timesExpr(c, base){
+  if(c===1) return base;
+
+  // If there is no horizontal shift, write cx directly:
+  // 3x rather than 3(x), and −x rather than −(x).
+  if(base==="x"){
+    if(c===-1) return "−x";
+    return `${c}x`;
+  }
+
+  if(c===-1) return `−(${base})`;
+  return `${c}(${base})`;
+}
+function fracInner(base,c){
+  if(c===1) return base;
+
+  const absC = Math.abs(c);
+
+  // When b = 0, base is just x. Avoid unnecessary parentheses:
+  // x/2 instead of (x)/2, and −x/2 instead of x/−2.
+  if(base==="x"){
+    if(c===-1) return "−x";
+    if(c<0) return `−x/${absC}`;
+    return `x/${c}`;
+  }
+
+  // When there is a horizontal shift, keep the grouped numerator,
+  // but move a negative denominator out front.
+  if(c===-1) return `−(${base})`;
+  if(c<0) return `−(${base})/${absC}`;
+  return `(${base})/${c}`;
+}
+function outerPrefix(a){
+  if(a===1) return "";
+  if(a===-1) return "−";
+  return String(a);
+}
+function addD(s,d){
+  if(d===0) return s;
+  return d>0 ? `${s} + ${d}` : `${s} − ${Math.abs(d)}`;
+}
+function formatFunction(type,a,b,c,d){
+  const base = innerShift(b);
+  let inner = (type===1 || type===3) ? fracInner(base,c) : timesExpr(c,base);
+  let fpart = `f(${inner})`;
+  let out;
+  if(type===1 || type===2){
+    out = outerPrefix(a) + fpart;
+  } else {
+    if(a===1) out=fpart;
+    else if(a===-1) out=`−${fpart}`;
+    else if(a<0) out=`−${fpart}/${Math.abs(a)}`;
+    else out=`${fpart}/${a}`;
+  }
+  return `g(x) = ${addD(out,d)}`;
+}
+
+function answerKey(type,a,b,c,d,x0,y0){
+  // This follows the transformation rules specified by the user.
+  let hx, vy;
+  if(type===1 || type===3) hx = c;       // horizontal stretch by |c|
+  else hx = 1/c;                         // horizontal shrink by |c|
+  if(type===1 || type===2) vy = a;       // vertical stretch by |a|
+  else vy = 1/a;                         // vertical shrink by |a|
+
+  // Point rule must correspond to the actual displayed formula:
+  // type 1: X=c*x+b, Y=a*y+d
+  // type 2: X=x/c+b, Y=a*y+d
+  // type 3: X=c*x+b, Y=y/a+d
+  // type 4: X=x/c+b, Y=y/a+d
+  let X = (type===1 || type===3) ? c*x0+b : x0/c+b;
+  let Y = (type===1 || type===2) ? a*y0+d : y0/a+d;
+
+  return {
+    hShift: b!==0 ? "yes":"no",
+    hUnits: Math.abs(b),
+    hDir: b>0 ? "right":"left",
+    refY: c<0 ? "yes":"no",
+    hScale: c===1 ? "none" : ((type===1||type===3) ? "stretching":"shrinking"),
+    hFactor: Math.abs(c),
+    refX: a<0 ? "yes":"no",
+    vScale: a===1 ? "none" : ((type===1||type===2) ? "stretching":"shrinking"),
+    vFactor: Math.abs(a),
+    vShift: d!==0 ? "yes":"no",
+    vUnits: Math.abs(d),
+    vDir: d>0 ? "up":"down",
+    newX: cleanNum(X),
+    newY: cleanNum(Y)
+  };
+}
+
+function generate(){
+  submitted=false;
+  const type=randInt(1,4);
+  let a=1,b=0,c=1,d=0;
+
+  let count = mode==="easy" ? 1 : (mode==="medium" ? 2 : (Math.random()<0.5 ? 3 : 4));
+  const allSets=[];
+  function combos(start,left,arr){
+    if(left===0){ allSets.push(arr.slice()); return; }
+    for(let i=start;i<=4-left;i++){ arr.push(i); combos(i+1,left-1,arr); arr.pop(); }
+  }
+  combos(0,count,[]);
+  const recent=recentSets[mode];
+  let available=allSets.filter(set=>!recent.includes(set.join(",")));
+  if(!available.length) available=allSets;
+  const chosen=available[randInt(0,available.length-1)];
+  const key=chosen.join(",");
+  recent.push(key);
+  if(recent.length>2) recent.shift();
+
+  if(chosen.includes(0)) { do a=nonzero(); while(a===1); }
+  if(chosen.includes(1)) b=nonzero();
+  if(chosen.includes(2)) { do c=nonzero(); while(c===1); }
+  if(chosen.includes(3)) d=nonzero();
+
+  const x0=nonzero(), y0=nonzero();
+  problem={type,a,b,c,d,x0,y0,key:answerKey(type,a,b,c,d,x0,y0)};
+  $("function").textContent=formatFunction(type,a,b,c,d);
+  $("givenPoint").textContent=`Given point: (${x0}, ${y0})`;
+
+  document.querySelectorAll(".answer-correction").forEach(el=>el.remove());
+  document.querySelectorAll("[data-field]").forEach(el=>{
+    el.value="";
+    el.classList.remove("correct","incorrect");
+    el.disabled=false;
+  });
+  $("submit").style.display="";
+  $("skip").style.display="";
+  $("next").style.display="none";
+  $("feedback").textContent="";
+  updateDependents();
+}
+
+function showClass(cls,on){
+  document.querySelectorAll("."+cls).forEach(e=>e.classList.toggle("show",on));
+}
+function updateDependents(){
+  showClass("hshiftDep",$("hShift").value==="yes");
+  showClass("hscaleDep",["shrinking","stretching"].includes($("hScale").value));
+  showClass("vscaleDep",["shrinking","stretching"].includes($("vScale").value));
+  showClass("vshiftDep",$("vShift").value==="yes");
+}
+["hShift","hScale","vScale","vShift"].forEach(id=>$(id).addEventListener("change",updateDependents));
+
+function parseNumeric(v){
+  if(v==null) return NaN;
+  const t=String(v).trim().replace(/\s+/g,"");
+  if(t==="") return NaN;
+  // Accept integers, decimals, and simple fractions such as -7/3.
+  if(/^[-+]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(t)) return Number(t);
+  const m=t.match(/^([-+]?(?:\d+(?:\.\d*)?|\.\d+))\/([-+]?(?:\d+(?:\.\d*)?|\.\d+))$/);
+  if(m){
+    const den=Number(m[2]);
+    if(den===0) return NaN;
+    return Number(m[1])/den;
+  }
+  return NaN;
+}
+function numericEqual(v,expected){
+  const n=parseNumeric(v);
+  return Number.isFinite(n) && Math.abs(n-expected)<1e-9;
+}
+function gradeField(id,expected,numeric=false){
+  const el=$(id);
+  const ok=numeric ? numericEqual(el.value,expected) : el.value===expected;
+  el.classList.add(ok?"correct":"incorrect");
+  score += ok ? 1 : -1;
+  return ok;
+}
+
+function correctionText(label, value){
+  return `${label}: ${value}`;
+}
+function addCorrection(row, text){
+  let box=row.querySelector(".answer-correction");
+  if(!box){
+    box=document.createElement("div");
+    box.className="answer-correction";
+    row.appendChild(box);
+  }
+  box.textContent = box.textContent ? `${box.textContent}; ${text}` : `(${text})`;
+  // Keep one enclosing pair of parentheses if multiple corrections are appended.
+  if(box.textContent.startsWith("(") && box.textContent.includes("); ")){
+    box.textContent = "(" + box.textContent.slice(1).replace("); ", "; ");
+  }
+}
+function prettyExpected(id,val){
+  if(id==="hShift" || id==="vShift" || id==="refY" || id==="refX")
+    return val==="yes" ? "Yes" : "No";
+  if(id==="hScale" || id==="vScale")
+    return val==="none" ? "Neither" : val.charAt(0).toUpperCase()+val.slice(1);
+  if(id==="hDir" || id==="vDir")
+    return val.charAt(0).toUpperCase()+val.slice(1);
+  return String(val);
+}
+
+$("submit").addEventListener("click",()=>{
+  if(submitted) return;
+  submitted=true;
+  const k=problem.key;
+  let correct=0,total=0;
+  const labels={
+    hShift:"Horizontal shifting", hUnits:"Units", hDir:"Direction",
+    refY:"Reflection over y-axis", hScale:"Horizontal scaling", hFactor:"Factor",
+    refX:"Reflection over x-axis", vScale:"Vertical scaling", vFactor:"Factor",
+    vShift:"Vertical shifting", vUnits:"Units", vDir:"Direction",
+    newX:"x-coordinate", newY:"y-coordinate"
+  };
+  const grade=(id,val,num=false)=>{
+    total++;
+    const ok=gradeField(id,val,num);
+    if(ok) correct++;
+    else addCorrection($(id).closest(".row"), correctionText(labels[id],prettyExpected(id,val)));
+  };
+
+  grade("hShift",k.hShift);
+  if(k.hShift==="yes"){ grade("hUnits",k.hUnits,true); grade("hDir",k.hDir); }
+
+  grade("refY",k.refY);
+  grade("hScale",k.hScale);
+  if(k.hScale!=="none") grade("hFactor",k.hFactor,true);
+
+  grade("refX",k.refX);
+  grade("vScale",k.vScale);
+  if(k.vScale!=="none") grade("vFactor",k.vFactor,true);
+
+  grade("vShift",k.vShift);
+  if(k.vShift==="yes"){ grade("vUnits",k.vUnits,true); grade("vDir",k.vDir); }
+
+  grade("newX",k.newX,true);
+  grade("newY",k.newY,true);
+
+  $("score").textContent=score;
+  $("feedback").textContent=`${correct} of ${total} responses correct.`;
+  document.querySelectorAll("[data-field]").forEach(el=>el.disabled=true);
+  $("submit").style.display="none";
+  $("skip").style.display="none";
+  $("next").style.display="inline-block";
+});
+
+$("skip").addEventListener("click",()=>{
+  generate();
+});
+$("next").addEventListener("click",generate);
+
+document.querySelectorAll(".tab").forEach(tab=>{
+  tab.addEventListener("click",()=>{
+    mode=tab.dataset.mode;
+    document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t===tab));
+    document.querySelector(".topbar strong").textContent =
+      mode==="easy" ? "Easy Mode" : mode==="medium" ? "Medium Mode" : "Expert Mode";
+    generate();
+  });
+});
+
+generate();
+</script>
+</body>
+</html>
