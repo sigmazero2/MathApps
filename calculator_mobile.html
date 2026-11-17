@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>100 Minus Sum Calculator</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; margin: 0; padding: 24px; font-size: 18pt; }
+  .calculator { max-width: 650px; margin: 0 auto; }
+  textarea { width: 100%; min-height: 125px; padding: 12px; font: 18pt Arial, sans-serif; resize: vertical; overflow-wrap: anywhere; border: 2px solid #777; border-radius: 8px; }
+  #result { margin-top: 16px; font-size: 18pt; min-height: 1.5em; overflow-wrap: anywhere; }
+  .keypad { display: none; }
+  @media (max-width: 700px) and (pointer: coarse) {
+    body { padding: 14px; }
+    textarea { min-height: 115px; }
+    .keypad { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 16px; }
+    .keypad button { min-height: 65px; font: bold 22pt Arial, sans-serif; border: 1px solid #999; border-radius: 10px; background: #f2f2f2; touch-action: manipulation; cursor: pointer; }
+    .keypad button:active { background: #d6d6d6; }
+    .keypad .enter { background: #dcebdd; }
+  }
+</style>
+</head>
+<body>
+<div class="calculator">
+  <textarea id="numbers" aria-label="Enter numbers to add or subtract" placeholder="Example: 10+20+5" spellcheck="false" autocomplete="off" inputmode="none"></textarea>
+  <div id="result" aria-live="polite"></div>
+  <div class="keypad" aria-label="Calculator keypad">
+    <button type="button" data-key="7">7</button><button type="button" data-key="8">8</button><button type="button" data-key="9">9</button>
+    <button type="button" data-key="4">4</button><button type="button" data-key="5">5</button><button type="button" data-key="6">6</button>
+    <button type="button" data-key="1">1</button><button type="button" data-key="2">2</button><button type="button" data-key="3">3</button>
+    <button type="button" data-key="+">+</button><button type="button" data-key="0">0</button><button type="button" data-key="-">−</button>
+    <button type="button" data-key="back">⌫</button><button type="button" class="enter" data-key="enter" style="grid-column:span 2">Enter / Clear</button>
+  </div>
+</div>
+<script>
+const field = document.getElementById('numbers');
+const result = document.getElementById('result');
+let showingResult = false;
+
+function enter() {
+  if (showingResult) {
+    field.value = '';
+    result.textContent = '';
+    showingResult = false;
+    return;
+  }
+  const expression = field.value.replace(/\s/g, '');
+  if (!/^[+-]?\d+(?:[+-]\d+)*$/.test(expression)) {
+    result.textContent = 'Please enter a valid expression.';
+    return;
+  }
+  const terms = expression.match(/[+-]?\d+/g);
+  const sum = terms.reduce((total, term) => total + Number(term), 0);
+  const answer = 100 - sum;
+  result.textContent = `100 − (${sum}) = ${answer}`;
+  showingResult = true;
+}
+function insertKey(key) {
+  if (key === 'enter') { enter(); return; }
+  if (showingResult) { field.value = ''; result.textContent = ''; showingResult = false; }
+  if (key === 'back') { field.value = field.value.slice(0, -1); return; }
+  field.value += key;
+  field.scrollTop = field.scrollHeight;
+}
+field.addEventListener('keydown', event => {
+  if (event.key === 'Enter') { event.preventDefault(); enter(); }
+});
+field.addEventListener('input', () => {
+  if (showingResult) { showingResult = false; result.textContent = ''; }
+});
+document.querySelectorAll('[data-key]').forEach(button => {
+  button.addEventListener('click', () => insertKey(button.dataset.key));
+});
+// On desktop, retain normal keyboard entry; on touch devices, use the on-page keypad.
+const touchView = window.matchMedia('(max-width: 700px) and (pointer: coarse)');
+function setKeyboardMode() { field.inputMode = touchView.matches ? 'none' : 'text'; }
+setKeyboardMode();
+touchView.addEventListener('change', setKeyboardMode);
+</script>
+</body>
+</html>
